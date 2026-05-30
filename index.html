@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Export-Import Management System</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f5f5;color:#111;font-size:14px;min-height:100vh}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid #e0e0e0;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{padding:16px 14px 10px;border-bottom:1px solid #e0e0e0}
+.sidebar-logo h1{font-size:13px;font-weight:600;color:#111;line-height:1.4}
+.sidebar-logo p{font-size:10px;color:#888;margin-top:2px}
+.nav-section{padding:10px 8px 3px;font-size:9px;font-weight:600;color:#aaa;letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;border-radius:6px;margin:1px 4px;font-size:12px;color:#555;transition:background .12s}
+.nav-item:hover{background:#f0f0f0}
+.nav-item.active{background:#e8f0fe;color:#1a73e8;font-weight:600}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-badge{margin:6px 8px;padding:6px 10px;border-radius:6px;background:#e8f5e9;color:#1b5e20;font-size:10px;font-weight:600;display:flex;align-items:center;gap:5px}
+.sync-badge.err{background:#fce4ec;color:#880e4f}
+.sync-badge.loading{background:#fff8e1;color:#e65100}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar h2{font-size:14px;font-weight:600}
+.pbadge{font-size:9px;padding:1px 6px;border-radius:4px;background:#f0f0f0;color:#666;margin-left:6px;font-weight:400}
+.content{padding:16px 18px;flex:1}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.kpi{background:#f8f8f8;border-radius:8px;padding:10px 12px}
+.kpi-lbl{font-size:11px;color:#666;margin-bottom:4px}
+.kpi-val{font-size:22px;font-weight:600}
+.kpi-val.blue{color:#1a73e8}.kpi-val.green{color:#188038}.kpi-val.red{color:#dc3545}.kpi-val.amber{color:#b45309}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.card-ttl{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:6px 8px;background:#f8f8f8;font-weight:600;font-size:11px;color:#666;border-bottom:1px solid #e0e0e0;white-space:nowrap}
+td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.bg{background:#e8f5e9;color:#1b5e20}.bb{background:#e3f2fd;color:#0d47a1}.ba{background:#fff8e1;color:#e65100}.br{background:#fce4ec;color:#880e4f}.bgr{background:#f5f5f5;color:#555}
+button{cursor:pointer;border:1px solid #ccc;background:#fff;color:#111;border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;transition:background .12s}
+button:hover{background:#f0f0f0}
+button.pri{background:#1a73e8;color:#fff;border-color:transparent}
+button.pri:hover{background:#1557b0}
+button.danger{background:#dc3545;color:#fff;border-color:transparent}
+button.sm{padding:3px 8px;font-size:11px}
+.sbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.sbar input{max-width:220px;border:1px solid #ccc;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit}
+.empty{text-align:center;padding:30px;color:#aaa;font-size:12px}
+.acell{display:flex;gap:3px}
+.dok{color:#188038;font-weight:600}.dbad{color:#dc3545;font-weight:600}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding-top:50px;overflow-y:auto}
+.modal{background:#fff;border-radius:10px;width:560px;max-width:95vw;padding:18px;max-height:82vh;overflow-y:auto}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:14px;color:#111}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrp{display:flex;flex-direction:column;gap:3px}
+.fgrp.full{grid-column:1/-1}
+label{font-size:11px;color:#666;font-weight:600}
+.fgrp input,.fgrp select,.fgrp textarea{border:1px solid #ccc;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fff;color:#111;width:100%}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{outline:none;border-color:#1a73e8}
+textarea{resize:vertical;min-height:56px}
+.mac{display:flex;justify-content:flex-end;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid #eee}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #e0e0e0;border-top-color:#1a73e8;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:18px;right:18px;padding:9px 16px;border-radius:8px;font-size:12px;z-index:999;color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const SUPA_URL = 'https://wktdubbvddynyigxmoyb.supabase.co';
+const SUPA_KEY = 'sb_publishable_-BjRXe1NkSTPQKQoRWDQVQ_Uu5CNZFX';
+
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+const NAV=[
+  {id:'dashboard',label:'Dashboard',color:'#1a73e8'},
+  {id:'orders',label:'Orders & Contracts',color:'#1a73e8'},
+  {id:'purchases',label:'Raw Material Purchases',color:'#f59e0b'},
+  {id:'containers',label:'Container Bookings',color:'#10b981'},
+  {id:'transporters',label:'Transporters & Plot',color:'#8b5cf6'},
+  {id:'loading',label:'Loading Assignment',color:'#64748b'},
+  {id:'loading_check',label:'Loading Bill Check',color:'#0891b2'},
+  {id:'preexport',label:'Pre-Export Docs',color:'#06b6d4'},
+  {id:'customs',label:'Customs & Port',color:'#ef4444'},
+  {id:'invoices',label:'Final Invoices',color:'#059669'},
+  {id:'bills',label:'Bills & Reconciliation',color:'#f97316'},
+  {id:'rates',label:'Master Rates',color:'#374151'},
+];
+
+let S={page:'dashboard',records:{},modal:null,search:'',loading:false,dbStatus:'loading'};
+
+function fmt(n){return n!=null&&n!==''?Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}):'';}
+function fmtN(n){return n!=null&&n!==''?Number(n).toLocaleString('en-IN'):'';}
+function fv(id){const e=document.getElementById(id);return e?e.value:'';}
+function genId(p){return p+'-'+Date.now().toString(36).toUpperCase();}
+
+function bdg(v){
+  const m={'Confirmed':'bg','Pending':'ba','Cancelled':'br','Matched':'bg','Discrepancy':'br','Approved':'bb','Paid':'bg','Unpaid':'ba','Overdue':'br','Partial':'bgr','Booked':'bb','Yes':'bg','No':'br','Gate-In Done':'bg','LEO Received':'bb','Clearance Pending':'ba','Completed':'bg','In Transit':'bb','Assigned':'ba','Applied-Pending':'ba','Ready for Customs':'bg','Fumigation Done':'bb','Scheduled':'ba','In Progress':'bb'};
+  return `<span class="badge ${m[v]||'bgr'}">${v||'—'}</span>`;
+}
+
+function toast(msg,type='green'){
+  const d=document.createElement('div');
+  d.className='toast';
+  d.style.background=type==='red'?'#dc3545':type==='amber'?'#b45309':'#188038';
+  d.textContent=msg;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),2500);
+}
+
+async function loadTable(table){
+  try{
+    const {data,error}=await db.from(table).select('*').order('created_at',{ascending:false});
+    if(error)throw error;
+    S.records[table]=data||[];
+  }catch(e){
+    S.records[table]=[];
+    console.error(table,e);
+  }
+}
+
+async function loadAll(){
+  S.dbStatus='loading';renderSidebar();
+  const tables=['orders','purchases','containers','transporters','loading','loading_check','preexport','customs','invoices','bills','rates'];
+  await Promise.all(tables.map(t=>loadTable(t)));
+  S.dbStatus='ok';
+  renderAll();
+}
+
+async function saveRecord(table,data,id){
+  try{
+    let res;
+    if(id){
+      res=await db.from(table).update(data).eq('id',id).select();
+    }else{
+      res=await db.from(table).insert(data).select();
+    }
+    if(res.error)throw res.error;
+    await loadTable(table);
+    renderAll();
+    toast(id?'Record updated':'Record saved');
+    closeModal();
+  }catch(e){
+    toast('Error: '+e.message,'red');
+    console.error(e);
+  }
+}
+
+async function deleteRecord(table,id){
+  if(!confirm('Delete this record? This cannot be undone.'))return;
+  try{
+    const {error}=await db.from(table).delete().eq('id',id);
+    if(error)throw error;
+    await loadTable(table);
+    renderAll();
+    toast('Record deleted','amber');
+  }catch(e){
+    toast('Error: '+e.message,'red');
+  }
+}
+
+function setPage(p){S.page=p;S.modal=null;S.search='';renderAll();}
+function closeModal(){S.modal=null;document.getElementById('modal-root').innerHTML='';}
+function openModal(html){S.modal=html;document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;}
+function mf(lbl,id,type='text',opts='',full=false,val=''){
+  const cls='fgrp'+(full?' full':'');
+  if(type==='select')return`<div class="${cls}"><label>${lbl}</label><select id="${id}">${opts}</select></div>`;
+  if(type==='textarea')return`<div class="${cls}"><label>${lbl}</label><textarea id="${id}" rows="2">${val||''}</textarea></div>`;
+  return`<div class="${cls}"><label>${lbl}</label><input type="${type}" id="${id}" value="${val||''}"></div>`;
+}
+function mw(title,fields,onSave){
+  return`<div class="modal"><h3>${title}</h3><div class="fg">${fields}</div><div class="mac"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="${onSave}">Save to Database</button></div></div>`;
+}
+function sel(opts,cur){return opts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${o}</option>`).join('');}
+
+function tbl(rows,hdrs,rowFn,emsg){
+  return`<div style="overflow-x:auto"><table><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(rowFn).join(''):`<tr><td colspan="${hdrs.length}"><div class="empty">${emsg}</div></td></tr>`}</tbody></table></div>`;
+}
+
+function renderSidebar(){
+  const el=document.getElementById('sidebar-nav');
+  if(!el)return;
+  const statusHtml=S.dbStatus==='ok'
+    ?`<div class="sync-badge">● Live — Supabase connected</div>`
+    :S.dbStatus==='loading'
+    ?`<div class="sync-badge loading"><span class="spinner"></span> Connecting...</div>`
+    :`<div class="sync-badge err">● Database error</div>`;
+  el.innerHTML=statusHtml+NAV.map(n=>`<div class="nav-item${S.page===n.id?' active':''}" onclick="setPage('${n.id}')"><span class="nav-dot" style="background:${n.color}"></span>${n.label}</div>`).join('');
+}
+
+function renderAll(){
+  const root=document.getElementById('root');
+  if(!root)return;
+  const pc=pages[S.page]||pages.dashboard;
+  const cnt=S.records[S.page];
+  root.innerHTML=`
+  <div class="app">
+    <div class="sidebar">
+      <div class="sidebar-logo"><h1>Export-Import<br>Management</h1><p>Powered by Supabase</p></div>
+      <div class="nav-section">Modules</div>
+      <div id="sidebar-nav"></div>
+      <div style="padding:10px 8px 14px;margin-top:auto;border-top:1px solid #eee"><div style="font-size:10px;color:#aaa;padding:0 6px;line-height:1.5">All data synced to cloud.<br>All team members share same data.</div></div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <h2>${pc.title}${Array.isArray(cnt)?`<span class="pbadge">${cnt.length} records</span>`:''}</h2>
+        <div style="display:flex;gap:6px">
+          <button onclick="loadAll()" style="font-size:11px;padding:4px 10px">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="content" id="content-area">${pc.render()}</div>
+    </div>
+  </div>
+  <div id="modal-root"></div>`;
+  renderSidebar();
+}
+
+function renderDash(){
+  const o=S.records.orders||[],p=S.records.purchases||[],c=S.records.containers||[],b=S.records.bills||[],i=S.records.invoices||[];
+  const conf=o.filter(x=>x.status==='Confirmed').length;
+  const disc=b.filter(x=>x.status==='Discrepancy').length;
+  const matched=b.filter(x=>x.status==='Matched').length;
+  const ttlInv=i.reduce((s,x)=>s+(Number(x.invoice_value)||0),0);
+  const ttlCon=c.reduce((s,x)=>s+(Number(x.num_containers)||0),0);
+  const ttlPur=p.reduce((s,x)=>s+(Number(x.total_value)||0),0);
+  const pipeline=[{l:'Orders',n:o.length},{l:'Confirmed',n:conf},{l:'Purchases',n:p.length},{l:'Containers',n:c.length},{l:'Loading',n:(S.records.loading||[]).length},{l:'Pre-Export',n:(S.records.preexport||[]).length},{l:'Customs',n:(S.records.customs||[]).length},{l:'Invoices',n:i.length},{l:'Bills\nMatched',n:matched}];
+  return`
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-lbl">Total Orders</div><div class="kpi-val blue">${o.length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Confirmed Orders</div><div class="kpi-val green">${conf}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Total Containers</div><div class="kpi-val blue">${ttlCon}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Invoice Value (USD)</div><div class="kpi-val green">$${fmt(ttlInv)}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Purchase Value (USD)</div><div class="kpi-val amber">$${fmt(ttlPur)}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Bill Discrepancies</div><div class="kpi-val red">${disc}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="card"><div class="card-ttl">Workflow pipeline</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${pipeline.map(s=>`<div style="text-align:center;min-width:60px"><div style="width:26px;height:26px;border-radius:50%;background:${s.n>0?'#10b981':'#e0e0e0'};display:flex;align-items:center;justify-content:center;margin:0 auto 3px;font-size:11px;color:#fff;font-weight:600">${s.n}</div><div style="font-size:9px;color:#888;white-space:pre-line;line-height:1.3">${s.l}</div></div>`).join('')}
+      </div>
+    </div>
+    <div class="card"><div class="card-ttl">Recent orders</div>
+      ${o.slice(0,5).map(x=>`<div style="padding:5px 0;border-bottom:1px solid #f5f5f5"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:600">${x.buyer||'—'}</span>${bdg(x.status||'Pending')}</div><div style="font-size:11px;color:#888;margin-top:1px">${x.commodity||'—'} · ${x.qty||'—'} MT</div></div>`).join('')||'<div class="empty">No orders yet</div>'}
+    </div>
+  </div>`;
+}
+
+function renderOrders(){
+  const rows=(S.records.orders||[]).filter(o=>!S.search||o.buyer?.toLowerCase().includes(S.search.toLowerCase())||o.contract_no?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search buyer, contract..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderOrders()"><button class="pri" onclick="openOrderModal()">+ New Order</button></div>`+
+  `<div class="card">`+tbl(rows,['Order ID','Date','Buyer','Country','Commodity','Qty (MT)','Unit Price','Order Value','Contract No.','Signed','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.order_date||'—'}</td>
+    <td><strong>${r.buyer||'—'}</strong></td><td>${r.country||'—'}</td><td>${r.commodity||'—'}</td>
+    <td>${fmtN(r.qty)}</td><td>$${fmt(r.unit_price)}</td><td>$${fmt(r.order_value)}</td>
+    <td>${r.contract_no||'—'}</td><td>${bdg(r.signed_contract||'No')}</td><td>${bdg(r.status||'Pending')}</td>
+    <td><div class="acell"><button class="sm" onclick="openOrderModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('orders','${r.id}')">Del</button></div></td>
+  </tr>`,'No orders yet. Click + New Order to begin.')+`</div>`;
+}
+function openOrderModal(id){
+  const r=id?(S.records.orders||[]).find(o=>o.id===id):{};
+  const f=mf('Order Date','o_date','date','',false,r.order_date||new Date().toISOString().slice(0,10))+mf('Buyer Name','o_buyer','text','',false,r.buyer||'')+mf('Buyer Country','o_country','text','',false,r.country||'')+mf('Commodity','o_comm','text','',false,r.commodity||'')+mf('Quantity (MT)','o_qty','number','',false,r.qty||'')+mf('Unit Price (USD)','o_price','number','',false,r.unit_price||'')+mf('Contract No.','o_contract','text','',false,r.contract_no||'')+mf('Contract Date','o_cdate','date','',false,r.contract_date||'')+mf('Signed Contract?','o_signed','select',sel(['No','Yes','Pending'],r.signed_contract||'No'))+mf('Payment Terms','o_pterm','text','',false,r.payment_terms||'')+mf('Delivery Terms','o_dterm','text','',false,r.delivery_terms||'')+mf('Remarks','o_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Order':'New Order',f,id?`saveOrder('${id}')`:'saveOrder()'));
+}
+async function saveOrder(id){
+  const data={order_date:fv('o_date')||null,buyer:fv('o_buyer'),country:fv('o_country'),commodity:fv('o_comm'),qty:fv('o_qty')||null,unit_price:fv('o_price')||null,contract_no:fv('o_contract'),contract_date:fv('o_cdate')||null,signed_contract:fv('o_signed'),payment_terms:fv('o_pterm'),delivery_terms:fv('o_dterm'),remarks:fv('o_rem')};
+  if(!id)data.id=genId('ORD');
+  await saveRecord('orders',data,id||null);
+}
+
+function renderPurchases(){
+  const rows=(S.records.purchases||[]).filter(o=>!S.search||o.vendor?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search vendor..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderPurchases()"><button class="pri" onclick="openPurchaseModal()">+ New Purchase</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Vendor','Commodity','Qty (MT)','Unit Price','Total Value','Advance','Balance Due','Grade','Contract','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.purchase_date||'—'}</td>
+    <td><strong>${r.vendor||'—'}</strong></td><td>${r.commodity||'—'}</td>
+    <td>${fmtN(r.qty)}</td><td>$${fmt(r.unit_price)}</td>
+    <td>$${fmt(r.total_value)}</td><td>$${fmt(r.advance_paid)}</td>
+    <td class="${Number(r.balance_due)>0?'dbad':'dok'}">$${fmt(r.balance_due)}</td>
+    <td>${r.quality_grade||'—'}</td><td>${r.linked_contract_no||'—'}</td>
+    <td><div class="acell"><button class="sm" onclick="openPurchaseModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('purchases','${r.id}')">Del</button></div></td>
+  </tr>`,'No purchases yet.')+`</div>`;
+}
+function openPurchaseModal(id){
+  const r=id?(S.records.purchases||[]).find(o=>o.id===id):{};
+  const f=mf('Purchase Date','p_date','date','',false,r.purchase_date||new Date().toISOString().slice(0,10))+mf('Vendor Name','p_vendor','text','',false,r.vendor||'')+mf('Vendor City','p_city','text','',false,r.vendor_city||'')+mf('Commodity','p_comm','text','',false,r.commodity||'')+mf('Quantity (MT)','p_qty','number','',false,r.qty||'')+mf('Unit Price','p_price','number','',false,r.unit_price||'')+mf('Advance Paid','p_adv','number','',false,r.advance_paid||0)+mf('Quality Grade','p_grade','text','',false,r.quality_grade||'')+mf('Season / Crop Year','p_season','text','',false,r.season||'')+mf('Linked Contract No.','p_contract','text','',false,r.linked_contract_no||'')+mf('Remarks','p_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Purchase':'New Purchase',f,id?`savePurchase('${id}')`:'savePurchase()'));
+}
+async function savePurchase(id){
+  const data={purchase_date:fv('p_date')||null,vendor:fv('p_vendor'),vendor_city:fv('p_city'),commodity:fv('p_comm'),qty:fv('p_qty')||null,unit_price:fv('p_price')||null,advance_paid:fv('p_adv')||0,quality_grade:fv('p_grade'),season:fv('p_season'),linked_contract_no:fv('p_contract')||null,remarks:fv('p_rem')};
+  if(!id)data.id=genId('PUR');
+  await saveRecord('purchases',data,id||null);
+}
+
+function renderContainers(){
+  const rows=(S.records.containers||[]).filter(o=>!S.search||o.booking_ref?.toLowerCase().includes(S.search.toLowerCase())||o.shipping_line?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search booking ref, shipping line..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderContainers()"><button class="pri" onclick="openContainerModal()">+ New Booking</button></div>`+
+  `<div class="card">`+tbl(rows,['Booking ID','Date','Shipping Line','Type','Qty','Booking Ref','Contract','ETD','POL','POD','Freight Rate','Total Freight','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.booking_date||'—'}</td>
+    <td>${r.shipping_line||'—'}</td><td>${r.container_type||'—'}</td><td style="text-align:center">${r.num_containers||'—'}</td>
+    <td><strong>${r.booking_ref||'—'}</strong></td><td>${r.linked_contract_no||'—'}</td>
+    <td>${r.etd||'—'}</td><td>${r.pol||'—'}</td><td>${r.pod||'—'}</td>
+    <td>$${fmt(r.freight_rate)}</td><td>$${fmt(r.total_freight)}</td>
+    <td>${bdg(r.status||'Booked')}</td>
+    <td><div class="acell"><button class="sm" onclick="openContainerModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('containers','${r.id}')">Del</button></div></td>
+  </tr>`,'No container bookings yet.')+`</div>`;
+}
+function openContainerModal(id){
+  const r=id?(S.records.containers||[]).find(o=>o.id===id):{};
+  const f=mf('Booking Date','c_date','date','',false,r.booking_date||new Date().toISOString().slice(0,10))+mf('Shipping Line','c_line','text','',false,r.shipping_line||'')+mf('Vessel / Voyage','c_vessel','text','',false,r.vessel||'')+mf('Container Type','c_type','select',sel(['20GP','40GP','40HC','45HC'],r.container_type||'20GP'))+mf('No. of Containers','c_num','number','',false,r.num_containers||1)+mf('Booking Ref No.','c_ref','text','',false,r.booking_ref||'')+mf('Linked Contract No.','c_contract','text','',false,r.linked_contract_no||'')+mf('ETD','c_etd','date','',false,r.etd||'')+mf('ETA','c_eta','date','',false,r.eta||'')+mf('POL (Port of Loading)','c_pol','text','',false,r.pol||'')+mf('POD (Port of Discharge)','c_pod','text','',false,r.pod||'')+mf('Freight Rate / Container (USD)','c_rate','number','',false,r.freight_rate||'')+mf('Status','c_status','select',sel(['Booked','Confirmed','Loaded','Sailed','Completed'],r.status||'Booked'));
+  openModal(mw(id?'Edit Container Booking':'New Container Booking',f,id?`saveContainer('${id}')`:'saveContainer()'));
+}
+async function saveContainer(id){
+  const data={booking_date:fv('c_date')||null,shipping_line:fv('c_line'),vessel:fv('c_vessel'),container_type:fv('c_type'),num_containers:parseInt(fv('c_num'))||1,booking_ref:fv('c_ref')||null,linked_contract_no:fv('c_contract')||null,etd:fv('c_etd')||null,eta:fv('c_eta')||null,pol:fv('c_pol'),pod:fv('c_pod'),freight_rate:fv('c_rate')||null,status:fv('c_status')};
+  if(!id)data.id=genId('BKG');
+  await saveRecord('containers',data,id||null);
+}
+
+function renderTransporters(){
+  const rows=(S.records.transporters||[]).filter(o=>!S.search||o.transporter?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search transporter..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderTransporters()"><button class="pri" onclick="openTransporterModal()">+ Assign Transporter</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Transporter','Vehicle No.','Booking Ref','Order ID','Containers','Rate','Total Cost','Plot Charges','Paid By','Plot Status','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.transport_date||'—'}</td>
+    <td><strong>${r.transporter||'—'}</strong></td><td>${r.vehicle_no||'—'}</td>
+    <td>${r.booking_ref||'—'}</td><td>${r.order_id||'—'}</td>
+    <td style="text-align:center">${r.num_containers||'—'}</td>
+    <td>$${fmt(r.rate_per_container)}</td><td>$${fmt(r.total_cost)}</td>
+    <td>$${fmt(r.plot_charges)}</td><td>${r.plot_paid_by||'—'}</td>
+    <td>${bdg(r.plot_status||'Pending')}</td><td>${bdg(r.status||'Assigned')}</td>
+    <td><div class="acell"><button class="sm" onclick="openTransporterModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('transporters','${r.id}')">Del</button></div></td>
+  </tr>`,'No transporters assigned yet.')+`</div>`;
+}
+function openTransporterModal(id){
+  const r=id?(S.records.transporters||[]).find(o=>o.id===id):{};
+  const f=mf('Date','t_date','date','',false,r.transport_date||new Date().toISOString().slice(0,10))+mf('Transporter Name','t_name','text','',false,r.transporter||'')+mf('Vehicle / Truck No.','t_vehicle','text','',false,r.vehicle_no||'')+mf('Linked Booking Ref','t_booking','text','',false,r.booking_ref||'')+mf('Linked Order ID','t_order','text','',false,r.order_id||'')+mf('No. of Containers','t_num','number','',false,r.num_containers||1)+mf('Route (From → To)','t_route','text','',true,r.route||'')+mf('Rate Per Container (USD)','t_rate','number','',false,r.rate_per_container||'')+mf('Plot Charges (USD)','t_plot','number','',false,r.plot_charges||0)+mf('Plot Charge Paid By','t_plotby','select',sel(['Direct by Us','By Transporter','Shared'],r.plot_paid_by||'Direct by Us'))+mf('Plot Charge Status','t_plotst','select',sel(['Pending','Paid','Reimbursed'],r.plot_status||'Pending'))+mf('Transport Status','t_status','select',sel(['Assigned','In Transit','Delivered','Completed'],r.status||'Assigned'));
+  openModal(mw(id?'Edit Transporter':'Assign Transporter',f,id?`saveTransporter('${id}')`:'saveTransporter()'));
+}
+async function saveTransporter(id){
+  const data={transport_date:fv('t_date')||null,transporter:fv('t_name'),vehicle_no:fv('t_vehicle'),booking_ref:fv('t_booking')||null,order_id:fv('t_order')||null,num_containers:parseInt(fv('t_num'))||1,route:fv('t_route'),rate_per_container:fv('t_rate')||null,plot_charges:fv('t_plot')||0,plot_paid_by:fv('t_plotby'),plot_status:fv('t_plotst'),status:fv('t_status')};
+  if(!id)data.id=genId('TRN');
+  await saveRecord('transporters',data,id||null);
+}
+
+function renderLoading(){
+  const rows=(S.records.loading||[]).filter(o=>!S.search||o.container_no?.toLowerCase().includes(S.search.toLowerCase())||o.vendor?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search container, vendor..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderLoading()"><button class="pri" onclick="openLoadingModal()">+ Add Loading Record</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Trailer No.','Order ID','Purchase ID','Vendor','Surveyor','Bags','Bag Type','Packing','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.loading_date||'—'}</td>
+    <td><strong>${r.container_no||'—'}</strong></td><td>${r.trailer_no||'—'}</td>
+    <td>${r.order_id||'—'}</td><td>${r.purchase_id||'—'}</td>
+    <td>${r.vendor||'—'}</td><td>${r.surveyor||'—'}</td>
+    <td>${fmtN(r.num_bags)}</td><td>${r.bag_type||'—'}</td><td>${r.packing_material||'—'}</td>
+    <td>${bdg(r.status||'Scheduled')}</td>
+    <td><div class="acell"><button class="sm" onclick="openLoadingModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('loading','${r.id}')">Del</button></div></td>
+  </tr>`,'No loading records yet.')+`</div>`;
+}
+function openLoadingModal(id){
+  const r=id?(S.records.loading||[]).find(o=>o.id===id):{};
+  const f=mf('Loading Date','l_date','date','',false,r.loading_date||new Date().toISOString().slice(0,10))+mf('Container No.','l_cno','text','',false,r.container_no||'')+mf('Trailer No.','l_trailer','text','',false,r.trailer_no||'')+mf('Linked Booking Ref','l_booking','text','',false,r.booking_ref||'')+mf('Linked Order ID','l_order','text','',false,r.order_id||'')+mf('Linked Purchase ID','l_purchase','text','',false,r.purchase_id||'')+mf('Vendor Name','l_vendor','text','',false,r.vendor||'')+mf('Surveyor Name','l_surveyor','text','',false,r.surveyor||'')+mf('Surveyor Company','l_surco','text','',false,r.surveyor_company||'')+mf('No. of Bags','l_bags','number','',false,r.num_bags||'')+mf('Bag Type','l_bagtype','text','',false,r.bag_type||'')+mf('Bag Weight (kg)','l_bagwt','number','',false,r.bag_weight_kg||'')+mf('Packing Material','l_packing','text','',false,r.packing_material||'')+mf('Packing Qty','l_packqty','number','',false,r.packing_qty||'')+mf('Status','l_status','select',sel(['Scheduled','In Progress','Completed'],r.status||'Scheduled'))+mf('Remarks','l_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Loading Record':'New Loading Record',f,id?`saveLoading('${id}')`:'saveLoading()'));
+}
+async function saveLoading(id){
+  const data={loading_date:fv('l_date')||null,container_no:fv('l_cno'),trailer_no:fv('l_trailer'),booking_ref:fv('l_booking')||null,order_id:fv('l_order')||null,purchase_id:fv('l_purchase')||null,vendor:fv('l_vendor'),surveyor:fv('l_surveyor'),surveyor_company:fv('l_surco'),num_bags:parseInt(fv('l_bags'))||null,bag_type:fv('l_bagtype'),bag_weight_kg:fv('l_bagwt')||null,packing_material:fv('l_packing'),packing_qty:parseInt(fv('l_packqty'))||null,status:fv('l_status'),remarks:fv('l_rem')};
+  if(!id)data.id=genId('LOD');
+  await saveRecord('loading',data,id||null);
+}
+
+function renderLoadingCheck(){
+  const rows=(S.records.loading_check||[]).filter(o=>!S.search||o.vendor?.toLowerCase().includes(S.search.toLowerCase())||o.container_no?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search container, vendor..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderLoadingCheck()"><button class="pri" onclick="openLoadingCheckModal()">+ Add Bill Check</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Order ID','Vendor','Order Qty','Bill Qty','Qty Diff','Order Price','Bill Price','Price Diff','Price OK?','Qty Deducted','Bill Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.check_date||'—'}</td>
+    <td><strong>${r.container_no||'—'}</strong></td><td>${r.order_id||'—'}</td><td>${r.vendor||'—'}</td>
+    <td>${fmtN(r.order_qty)}</td><td>${fmtN(r.bill_qty)}</td>
+    <td class="${Number(r.qty_difference)===0?'dok':'dbad'}">${Number(r.qty_difference)>0?'+':''}${fmtN(r.qty_difference)}</td>
+    <td>$${fmt(r.order_price)}</td><td>$${fmt(r.bill_price)}</td>
+    <td class="${Number(r.price_difference)===0?'dok':'dbad'}">${Number(r.price_difference)>0?'+':''}$${fmt(r.price_difference)}</td>
+    <td>${bdg(r.price_ok||'Pending')}</td><td>${fmtN(r.qty_deducted)}</td><td>${bdg(r.bill_status||'Pending')}</td>
+    <td><div class="acell"><button class="sm" onclick="openLoadingCheckModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('loading_check','${r.id}')">Del</button></div></td>
+  </tr>`,'No loading checks yet.')+`</div>`;
+}
+function openLoadingCheckModal(id){
+  const r=id?(S.records.loading_check||[]).find(o=>o.id===id):{};
+  const f=mf('Check Date','lc_date','date','',false,r.check_date||new Date().toISOString().slice(0,10))+mf('Container No.','lc_cno','text','',false,r.container_no||'')+mf('Linked Order ID','lc_order','text','',false,r.order_id||'')+mf('Vendor Name','lc_vendor','text','',false,r.vendor||'')+mf('Vendor Order Qty (MT)','lc_oqty','number','',false,r.order_qty||'')+mf('Seller Bill Qty (MT)','lc_bqty','number','',false,r.bill_qty||'')+mf('Vendor Order Price','lc_oprice','number','',false,r.order_price||'')+mf('Seller Bill Price','lc_bprice','number','',false,r.bill_price||'')+mf('Price OK?','lc_priceok','select',sel(['Pending','Yes','No','Variance Accepted'],r.price_ok||'Pending'))+mf('Qty Deducted (MT)','lc_deduct','number','',false,r.qty_deducted||0)+mf('Bill Status','lc_status','select',sel(['Pending','Approved','Rejected'],r.bill_status||'Pending'))+mf('Remarks','lc_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Bill Check':'Loading Bill Verification',f,id?`saveLoadingCheck('${id}')`:'saveLoadingCheck()'));
+}
+async function saveLoadingCheck(id){
+  const data={check_date:fv('lc_date')||null,container_no:fv('lc_cno'),order_id:fv('lc_order')||null,vendor:fv('lc_vendor'),order_qty:fv('lc_oqty')||null,bill_qty:fv('lc_bqty')||null,order_price:fv('lc_oprice')||null,bill_price:fv('lc_bprice')||null,price_ok:fv('lc_priceok'),qty_deducted:fv('lc_deduct')||0,bill_status:fv('lc_status'),remarks:fv('lc_rem')};
+  if(!id)data.id=genId('CHK');
+  await saveRecord('loading_check',data,id||null);
+}
+
+function renderPreExport(){
+  const rows=(S.records.preexport||[]).filter(o=>!S.search||o.container_no?.toLowerCase().includes(S.search.toLowerCase())||o.order_id?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search container, order..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderPreExport()"><button class="pri" onclick="openPreExportModal()">+ Add Pre-Export Record</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Order ID','Pre-Invoice No.','Pre-Invoice Value','Phyto Applied','Phyto Cert No.','Fumigation Done','Fumigation Co.','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.doc_date||'—'}</td>
+    <td><strong>${r.container_no||'—'}</strong></td><td>${r.order_id||'—'}</td>
+    <td>${r.pre_invoice_no||'—'}</td><td>$${fmt(r.pre_invoice_value)}</td>
+    <td>${bdg(r.phyto_applied||'No')}</td><td>${r.phyto_cert_no||'—'}</td>
+    <td>${bdg(r.fumigation_done||'No')}</td><td>${r.fumigation_company||'—'}</td>
+    <td>${bdg(r.status||'Pre-Invoice Created')}</td>
+    <td><div class="acell"><button class="sm" onclick="openPreExportModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('preexport','${r.id}')">Del</button></div></td>
+  </tr>`,'No pre-export records yet.')+`</div>`;
+}
+function openPreExportModal(id){
+  const r=id?(S.records.preexport||[]).find(o=>o.id===id):{};
+  const f=mf('Date','pe_date','date','',false,r.doc_date||new Date().toISOString().slice(0,10))+mf('Container No.','pe_cno','text','',false,r.container_no||'')+mf('Linked Order ID','pe_order','text','',false,r.order_id||'')+mf('Pre-Invoice No.','pe_invno','text','',false,r.pre_invoice_no||'')+mf('Pre-Invoice Date','pe_invdate','date','',false,r.pre_invoice_date||'')+mf('Pre-Invoice Value (USD)','pe_invval','number','',false,r.pre_invoice_value||'')+mf('Phyto Applied?','pe_phyto','select',sel(['No','Yes','Applied-Pending'],r.phyto_applied||'No'))+mf('Phyto Cert No.','pe_phytono','text','',false,r.phyto_cert_no||'')+mf('Phyto Date','pe_phytodate','date','',false,r.phyto_date||'')+mf('Fumigation Done?','pe_fum','select',sel(['No','Yes','In Progress'],r.fumigation_done||'No'))+mf('Fumigation Company','pe_fumco','text','',false,r.fumigation_company||'')+mf('Fumigation Date','pe_fumdate','date','',false,r.fumigation_date||'')+mf('Fumigation Cert No.','pe_fumcert','text','',false,r.fumigation_cert_no||'')+mf('Status','pe_status','select',sel(['Pre-Invoice Created','Phyto Applied','Fumigation Done','Ready for Customs'],r.status||'Pre-Invoice Created'));
+  openModal(mw(id?'Edit Pre-Export':'Pre-Export Documents',f,id?`savePreExport('${id}')`:'savePreExport()'));
+}
+async function savePreExport(id){
+  const data={doc_date:fv('pe_date')||null,container_no:fv('pe_cno'),order_id:fv('pe_order')||null,pre_invoice_no:fv('pe_invno'),pre_invoice_date:fv('pe_invdate')||null,pre_invoice_value:fv('pe_invval')||null,phyto_applied:fv('pe_phyto'),phyto_cert_no:fv('pe_phytono'),phyto_date:fv('pe_phytodate')||null,fumigation_done:fv('pe_fum'),fumigation_company:fv('pe_fumco'),fumigation_date:fv('pe_fumdate')||null,fumigation_cert_no:fv('pe_fumcert'),status:fv('pe_status')};
+  if(!id)data.id=genId('PRE');
+  await saveRecord('preexport',data,id||null);
+}
+
+function renderCustoms(){
+  const rows=(S.records.customs||[]).filter(o=>!S.search||o.container_no?.toLowerCase().includes(S.search.toLowerCase())||o.leo_copy_no?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search container, LEO no..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderCustoms()"><button class="pri" onclick="openCustomsModal()">+ Add Customs Record</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Order ID','Clearing Agent','Customs Entry No.','LEO Copy No.','LEO Date','Gate-In Date','Seal No.','Port','Status','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.entry_date||'—'}</td>
+    <td><strong>${r.container_no||'—'}</strong></td><td>${r.order_id||'—'}</td>
+    <td>${r.clearing_agent||'—'}</td><td>${r.customs_entry_no||'—'}</td>
+    <td><strong>${r.leo_copy_no||'—'}</strong></td><td>${r.leo_date||'—'}</td>
+    <td>${r.gate_in_date||'—'}</td><td><strong>${r.seal_no||'—'}</strong></td>
+    <td>${r.port_name||'—'}</td><td>${bdg(r.status||'Clearance Pending')}</td>
+    <td><div class="acell"><button class="sm" onclick="openCustomsModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('customs','${r.id}')">Del</button></div></td>
+  </tr>`,'No customs records yet.')+`</div>`;
+}
+function openCustomsModal(id){
+  const r=id?(S.records.customs||[]).find(o=>o.id===id):{};
+  const f=mf('Date','cu_date','date','',false,r.entry_date||new Date().toISOString().slice(0,10))+mf('Container No.','cu_cno','text','',false,r.container_no||'')+mf('Linked Order ID','cu_order','text','',false,r.order_id||'')+mf('Clearing Agent','cu_agent','text','',false,r.clearing_agent||'')+mf('Customs Entry No.','cu_entry','text','',false,r.customs_entry_no||'')+mf('Clearance Date','cu_cleardate','date','',false,r.clearance_date||'')+mf('LEO Copy No.','cu_leo','text','',false,r.leo_copy_no||'')+mf('LEO Date','cu_leodate','date','',false,r.leo_date||'')+mf('Gate-In Date','cu_gatein','date','',false,r.gate_in_date||'')+mf('Seal No.','cu_seal','text','',false,r.seal_no||'')+mf('Gate Pass No.','cu_gatepass','text','',false,r.gate_pass_no||'')+mf('Port Name','cu_port','text','',false,r.port_name||'')+mf('Berth / Terminal','cu_berth','text','',false,r.berth_terminal||'')+mf('Status','cu_status','select',sel(['Clearance Pending','LEO Received','Gate-In Done','Loaded on Vessel'],r.status||'Clearance Pending'));
+  openModal(mw(id?'Edit Customs Record':'Customs & Port Entry',f,id?`saveCustoms('${id}')`:'saveCustoms()'));
+}
+async function saveCustoms(id){
+  const data={entry_date:fv('cu_date')||null,container_no:fv('cu_cno'),order_id:fv('cu_order')||null,clearing_agent:fv('cu_agent'),customs_entry_no:fv('cu_entry'),clearance_date:fv('cu_cleardate')||null,leo_copy_no:fv('cu_leo'),leo_date:fv('cu_leodate')||null,gate_in_date:fv('cu_gatein')||null,seal_no:fv('cu_seal'),gate_pass_no:fv('cu_gatepass'),port_name:fv('cu_port'),berth_terminal:fv('cu_berth'),status:fv('cu_status')};
+  if(!id)data.id=genId('CUS');
+  await saveRecord('customs',data,id||null);
+}
+
+function renderInvoices(){
+  const rows=(S.records.invoices||[]).filter(o=>!S.search||o.buyer?.toLowerCase().includes(S.search.toLowerCase())||o.invoice_no?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search buyer, invoice no..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderInvoices()"><button class="pri" onclick="openInvoiceModal()">+ New Invoice</button></div>`+
+  `<div class="card">`+tbl(rows,['Invoice No.','Date','Order ID','Buyer','Commodity','Qty (MT)','Unit Price','Invoice Value','Payment Terms','Due Date','Payment Status','Received','Balance Due','Actions'],r=>`<tr>
+    <td><strong>${r.invoice_no||r.id}</strong></td><td>${r.invoice_date||'—'}</td>
+    <td>${r.order_id||'—'}</td><td>${r.buyer||'—'}</td><td>${r.commodity||'—'}</td>
+    <td>${fmtN(r.qty)}</td><td>$${fmt(r.unit_price)}</td>
+    <td><strong>$${fmt(r.invoice_value)}</strong></td>
+    <td>${r.payment_terms||'—'}</td><td>${r.due_date||'—'}</td>
+    <td>${bdg(r.payment_status||'Unpaid')}</td>
+    <td>$${fmt(r.amount_received)}</td>
+    <td class="${Number(r.balance_due)>0?'dbad':'dok'}">$${fmt(r.balance_due)}</td>
+    <td><div class="acell"><button class="sm" onclick="openInvoiceModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('invoices','${r.id}')">Del</button></div></td>
+  </tr>`,'No invoices yet.')+`</div>`;
+}
+function openInvoiceModal(id){
+  const r=id?(S.records.invoices||[]).find(o=>o.id===id):{};
+  const f=mf('Invoice No.','i_invno','text','',false,r.invoice_no||'')+mf('Invoice Date','i_date','date','',false,r.invoice_date||new Date().toISOString().slice(0,10))+mf('Linked Order ID','i_order','text','',false,r.order_id||'')+mf('Linked Contract No.','i_contract','text','',false,r.contract_no||'')+mf('Buyer Name','i_buyer','text','',false,r.buyer||'')+mf('Commodity','i_comm','text','',false,r.commodity||'')+mf('Quantity (MT)','i_qty','number','',false,r.qty||'')+mf('Unit Price (USD)','i_price','number','',false,r.unit_price||'')+mf('Invoice Value (USD)','i_value','number','',false,r.invoice_value||'')+mf('Currency','i_currency','text','',false,r.currency||'USD')+mf('Payment Terms','i_pterm','text','',false,r.payment_terms||'')+mf('Due Date','i_due','date','',false,r.due_date||'')+mf('Payment Status','i_pstatus','select',sel(['Unpaid','Partial','Paid','Overdue'],r.payment_status||'Unpaid'))+mf('Amount Received (USD)','i_received','number','',false,r.amount_received||0);
+  openModal(mw(id?'Edit Invoice':'New Final Invoice',f,id?`saveInvoice('${id}')`:'saveInvoice()'));
+}
+async function saveInvoice(id){
+  const qty=parseFloat(fv('i_qty'))||0,price=parseFloat(fv('i_price'))||0;
+  const data={invoice_no:fv('i_invno')||null,invoice_date:fv('i_date')||null,order_id:fv('i_order')||null,contract_no:fv('i_contract')||null,buyer:fv('i_buyer'),commodity:fv('i_comm'),qty:qty||null,unit_price:price||null,invoice_value:parseFloat(fv('i_value'))||qty*price||null,currency:fv('i_currency')||'USD',payment_terms:fv('i_pterm'),due_date:fv('i_due')||null,payment_status:fv('i_pstatus'),amount_received:parseFloat(fv('i_received'))||0};
+  if(!id)data.id=genId('INV');
+  await saveRecord('invoices',data,id||null);
+}
+
+function renderBills(){
+  const rows=(S.records.bills||[]).filter(o=>!S.search||o.service_provider?.toLowerCase().includes(S.search.toLowerCase())||o.bill_type?.toLowerCase().includes(S.search.toLowerCase()));
+  const matched=rows.filter(r=>r.status==='Matched').length,disc=rows.filter(r=>r.status==='Discrepancy').length;
+  return`
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="kpi-lbl">Total Bills</div><div class="kpi-val blue">${rows.length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Matched</div><div class="kpi-val green">${matched}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Discrepancies</div><div class="kpi-val red">${disc}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Total Billed (USD)</div><div class="kpi-val amber">$${fmt(rows.reduce((s,r)=>s+(Number(r.billed_amount)||0),0))}</div></div>
+  </div>
+  <div class="sbar"><input placeholder="Search provider, type..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderBills()"><button class="pri" onclick="openBillModal()">+ Add Bill</button></div>`+
+  `<div class="card">`+tbl(rows,['Bill ID','Date','Type','Service Provider','Order ID','Container No.','Billed Amount','Predefined Rate','Difference','Variance %','Status','Approved By','Paid Amount','Balance','Actions'],r=>`<tr>
+    <td><code style="font-size:10px">${r.id}</code></td><td>${r.bill_date||'—'}</td>
+    <td><span class="badge bb">${r.bill_type||'—'}</span></td>
+    <td>${r.service_provider||'—'}</td><td>${r.order_id||'—'}</td><td>${r.container_no||'—'}</td>
+    <td><strong>$${fmt(r.billed_amount)}</strong></td><td>$${fmt(r.predefined_rate)}</td>
+    <td class="${Number(r.difference)===0?'dok':'dbad'}">${Number(r.difference)>0?'+':''}$${fmt(r.difference)}</td>
+    <td class="${Math.abs(Number(r.variance_pct))<=2?'dok':'dbad'}">${Number(r.variance_pct).toFixed(1)}%</td>
+    <td>${bdg(r.status||'Pending')}</td>
+    <td>${r.approved_by||'—'}</td><td>$${fmt(r.paid_amount)}</td>
+    <td class="${Number(r.balance)>0?'dbad':'dok'}">$${fmt(r.balance)}</td>
+    <td><div class="acell"><button class="sm" onclick="openBillModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('bills','${r.id}')">Del</button></div></td>
+  </tr>`,'No bills recorded yet.')+`</div>`;
+}
+function openBillModal(id){
+  const r=id?(S.records.bills||[]).find(o=>o.id===id):{};
+  const f=mf('Bill Date','b_date','date','',false,r.bill_date||new Date().toISOString().slice(0,10))+mf('Bill Type','b_type','select',sel(['Freight','Transporter','Phyto','Fumigation','Clearing','Plot Charges','Other'],r.bill_type||'Freight'))+mf('Service Provider','b_prov','text','',false,r.service_provider||'')+mf('Linked Order ID','b_order','text','',false,r.order_id||'')+mf('Container No.','b_cno','text','',false,r.container_no||'')+mf('Billed Amount (USD)','b_billed','number','',false,r.billed_amount||'')+mf('Predefined Rate (USD)','b_rate','number','',false,r.predefined_rate||'')+mf('Status','b_status','select',sel(['Pending','Matched','Discrepancy','Approved','Paid'],r.status||'Pending'))+mf('Approved By','b_appr','text','',false,r.approved_by||'')+mf('Payment Date','b_paydate','date','',false,r.payment_date||'')+mf('Paid Amount (USD)','b_paid','number','',false,r.paid_amount||0)+mf('Remarks','b_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Bill':'Add Service Bill',f,id?`saveBill('${id}')`:'saveBill()'));
+}
+async function saveBill(id){
+  const billed=parseFloat(fv('b_billed'))||0,pre=parseFloat(fv('b_rate'))||0;
+  const data={bill_date:fv('b_date')||null,bill_type:fv('b_type'),service_provider:fv('b_prov'),order_id:fv('b_order')||null,container_no:fv('b_cno'),billed_amount:billed||null,predefined_rate:pre||null,status:fv('b_status'),approved_by:fv('b_appr'),payment_date:fv('b_paydate')||null,paid_amount:parseFloat(fv('b_paid'))||0,remarks:fv('b_rem')};
+  if(!id)data.id=genId('BILL');
+  await saveRecord('bills',data,id||null);
+}
+
+function renderRates(){
+  const rows=(S.records.rates||[]).filter(r=>!S.search||r.category?.toLowerCase().includes(S.search.toLowerCase())||r.provider?.toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Filter by category or provider..." value="${S.search||''}" oninput="S.search=this.value;document.getElementById('content-area').innerHTML=renderRates()"><button class="pri" onclick="openRateModal()">+ Add Rate</button></div>`+
+  `<div class="card">`+tbl(rows,['Category','Provider / Route','Description','Rate (USD)','Unit','Effective From','Actions'],r=>`<tr>
+    <td><span class="badge bb">${r.category||'—'}</span></td>
+    <td><strong>${r.provider||'—'}</strong></td><td>${r.description||'—'}</td>
+    <td><strong>$${fmt(r.rate)}</strong></td><td>${r.unit||'—'}</td>
+    <td>${r.effective_from||'—'}</td>
+    <td><div class="acell"><button class="sm" onclick="openRateModal('${r.id}')">Edit</button><button class="sm danger" onclick="deleteRecord('rates','${r.id}')">Del</button></div></td>
+  </tr>`,'No rates defined yet. Add predefined rates to enable automatic bill reconciliation.')+`</div>`;
+}
+function openRateModal(id){
+  const r=id?(S.records.rates||[]).find(o=>o.id===id):{};
+  const f=mf('Category','r_cat','select',sel(['Freight','Transporter','Clearing','Phyto','Fumigation','Plot Charges'],r.category||'Freight'))+mf('Provider / Route','r_prov','text','',false,r.provider||'')+mf('Description','r_desc','text','',true,r.description||'')+mf('Rate (USD)','r_rate','number','',false,r.rate||'')+mf('Unit','r_unit','text','',false,r.unit||'per container')+mf('Effective From','r_from','date','',false,r.effective_from||new Date().toISOString().slice(0,10))+mf('Remarks','r_rem','textarea','',true,r.remarks||'');
+  openModal(mw(id?'Edit Rate':'Add Master Rate',f,id?`saveRate('${id}')`:'saveRate()'));
+}
+async function saveRate(id){
+  const data={category:fv('r_cat'),provider:fv('r_prov'),description:fv('r_desc'),rate:fv('r_rate')||null,unit:fv('r_unit'),effective_from:fv('r_from')||null,remarks:fv('r_rem')};
+  if(!id)data.id=genId('RATE');
+  await saveRecord('rates',data,id||null);
+}
+
+const pages={
+  dashboard:{title:'Dashboard',render:renderDash},
+  orders:{title:'Orders & Contracts',render:renderOrders},
+  purchases:{title:'Raw Material Purchases',render:renderPurchases},
+  containers:{title:'Container Bookings',render:renderContainers},
+  transporters:{title:'Transporters & Plot Charges',render:renderTransporters},
+  loading:{title:'Loading Assignment',render:renderLoading},
+  loading_check:{title:'Loading Bill Verification',render:renderLoadingCheck},
+  preexport:{title:'Pre-Export Documents',render:renderPreExport},
+  customs:{title:'Customs & Port Entry',render:renderCustoms},
+  invoices:{title:'Final Invoices',render:renderInvoices},
+  bills:{title:'Bills & Reconciliation',render:renderBills},
+  rates:{title:'Master Rates Table',render:renderRates},
+};
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+renderAll();
+loadAll();
+</script>
+</body>
+</html>
