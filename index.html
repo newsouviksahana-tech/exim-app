@@ -3,437 +3,639 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExIm Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>ExIm Manager v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
-  --bg:#0f1117;--surface:#181c27;--surface2:#1e2335;--border:#2a2f45;--border2:#353c56;
-  --text:#e8ecf4;--text2:#9aa5c4;--text3:#5a6484;
-  --accent:#4f8ef7;--accent2:#3d7ae0;--green:#2ecc8a;--amber:#f5a623;--red:#e05555;--purple:#8b6cf7;
-  --radius:10px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --bg:#0d1117;--surf:#161b27;--surf2:#1c2235;--surf3:#222840;
+  --bdr:#2a3050;--bdr2:#353d5c;
+  --txt:#e2e8f0;--txt2:#8892b0;--txt3:#4a5580;
+  --blue:#4f9cf9;--blue2:#3b82f6;--green:#34d399;--amber:#fbbf24;--red:#f87171;--purple:#a78bfa;--cyan:#22d3ee;
+  --r:10px;--font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--surface)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);font-size:13px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surf)}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
 
+/* APP SHELL */
 .app{display:flex;height:100vh;overflow:hidden}
-
-/* SIDEBAR */
-.sidebar{width:218px;min-width:218px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
-.logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
-.logo h1{font-size:14px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
-.logo p{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
-.nav-sec{padding:14px 12px 4px;font-size:9px;font-weight:500;color:var(--text3);letter-spacing:.12em;text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-radius:7px;margin:1px 6px;font-size:12px;color:var(--text2);transition:all .15s}
-.nav-item:hover{background:var(--surface2);color:var(--text)}
-.nav-item.active{background:rgba(79,142,247,.12);color:var(--accent);font-weight:500}
+.sidebar{width:220px;min-width:220px;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:18px 16px 12px;border-bottom:1px solid var(--bdr)}
+.logo h1{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.logo p{font-size:10px;color:var(--txt3);margin-top:3px;font-family:var(--mono)}
+.nav-sec{padding:14px 12px 3px;font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.12em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-radius:7px;margin:1px 6px;font-size:12px;color:var(--txt2);transition:all .12s}
+.nav-item:hover{background:var(--surf2);color:var(--txt)}
+.nav-item.active{background:rgba(79,156,249,.13);color:var(--blue);font-weight:600}
 .nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.db-pill{margin:8px 10px 4px;padding:6px 10px;border-radius:7px;background:rgba(46,204,138,.08);border:1px solid rgba(46,204,138,.2);font-size:10px;color:var(--green);font-family:var(--mono);display:flex;align-items:center;gap:6px}
-.db-pill.err{background:rgba(224,85,85,.08);border-color:rgba(224,85,85,.2);color:var(--red)}
-.db-pill.loading{background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.2);color:var(--amber)}
-.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pulse 2s infinite}
+.db-pill{margin:8px 10px 4px;padding:6px 10px;border-radius:7px;font-size:10px;font-family:var(--mono);display:flex;align-items:center;gap:6px;border:1px solid}
+.db-ok{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.2);color:var(--green)}
+.db-err{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.2);color:var(--red)}
+.db-load{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.2);color:var(--amber)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
 
 /* MAIN */
-.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .topbar h2{font-size:15px;font-weight:600;letter-spacing:-.2px}
-.pbadge{font-size:9px;padding:2px 7px;border-radius:20px;background:var(--surface2);color:var(--text3);margin-left:8px;font-family:var(--mono)}
-.content{padding:18px 20px;flex:1}
+.pbadge{font-size:9px;padding:2px 7px;border-radius:20px;background:var(--surf2);color:var(--txt3);margin-left:8px;font-family:var(--mono)}
+.content{flex:1;overflow-y:auto;padding:16px 18px}
 
 /* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
-.kpi-lbl{font-size:10px;color:var(--text3);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
-.kpi-val{font-size:24px;font-weight:600;font-family:var(--mono);letter-spacing:-1px}
-.kpi-val.blue{color:var(--accent)}.kpi-val.green{color:var(--green)}.kpi-val.red{color:var(--red)}.kpi-val.amber{color:var(--amber)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px}
+.kpi-lbl{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-1px}
+.blue{color:var(--blue)}.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}
 
 /* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px}
-.card-ttl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card-ttl{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 
 /* TABLE */
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:7px 10px;background:var(--surface2);font-weight:500;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
-td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
+th{text-align:left;padding:7px 10px;background:var(--surf2);font-weight:500;font-size:10px;color:var(--txt3);border-bottom:1px solid var(--bdr);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+td{padding:7px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.02)}
+tr:hover td{background:rgba(255,255,255,.018)}
+.mono{font-family:var(--mono);font-size:11px}
 
 /* BADGE */
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;font-family:var(--mono)}
-.bg{background:rgba(46,204,138,.12);color:var(--green)}.bb{background:rgba(79,142,247,.12);color:var(--accent)}.ba{background:rgba(245,166,35,.12);color:var(--amber)}.br{background:rgba(224,85,85,.12);color:var(--red)}.bgr{background:var(--surface2);color:var(--text3)}.bpu{background:rgba(139,108,247,.12);color:var(--purple)}
+.bg{background:rgba(52,211,153,.1);color:var(--green)}
+.bb{background:rgba(79,156,249,.1);color:var(--blue)}
+.ba{background:rgba(251,191,36,.1);color:var(--amber)}
+.br{background:rgba(248,113,113,.1);color:var(--red)}
+.bp{background:rgba(167,139,250,.1);color:var(--purple)}
+.bc{background:rgba(34,211,238,.1);color:var(--cyan)}
+.bgr{background:var(--surf2);color:var(--txt3)}
 
 /* BUTTONS */
-button{cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);border-radius:7px;padding:6px 12px;font-size:12px;font-family:var(--font);transition:all .15s}
-button:hover{background:var(--border);color:var(--text)}
-button.pri{background:var(--accent);color:#fff;border-color:transparent}
-button.pri:hover{background:var(--accent2)}
-button.danger{background:rgba(224,85,85,.12);color:var(--red);border-color:rgba(224,85,85,.2)}
-button.danger:hover{background:rgba(224,85,85,.2)}
-button.sm{padding:3px 8px;font-size:11px}
-button.ghost{background:transparent;border-color:transparent;color:var(--text3)}
-button.ghost:hover{color:var(--text);background:var(--surface2)}
+button{cursor:pointer;border:1px solid var(--bdr2);background:var(--surf2);color:var(--txt2);border-radius:7px;padding:6px 12px;font-size:12px;font-family:var(--font);transition:all .12s;white-space:nowrap}
+button:hover{background:var(--bdr);color:var(--txt)}
+button.pri{background:var(--blue);color:#fff;border-color:transparent;font-weight:500}
+button.pri:hover{background:var(--blue2)}
+button.danger{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.2)}
+button.danger:hover{background:rgba(248,113,113,.2)}
+button.success{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.2)}
+button.success:hover{background:rgba(52,211,153,.2)}
+button.sm{padding:3px 9px;font-size:11px}
+button.ghost{background:transparent;border-color:transparent;color:var(--txt3)}
+button.ghost:hover{background:var(--surf2);color:var(--txt)}
 
 /* SEARCH BAR */
 .sbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.sbar input,.sbar select{max-width:240px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:6px 10px;font-size:12px;font-family:var(--font);color:var(--text);outline:none}
-.sbar input:focus,.sbar select:focus{border-color:var(--accent)}
-.sbar input::placeholder{color:var(--text3)}
+.sbar input,.sbar select{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:6px 10px;font-size:12px;font-family:var(--font);color:var(--txt);outline:none;max-width:260px}
+.sbar input:focus,.sbar select:focus{border-color:var(--blue)}
+.sbar input::placeholder{color:var(--txt3)}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:48px 16px;overflow-y:auto;backdrop-filter:blur(4px)}
-.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:600px;max-width:96vw;padding:22px;max-height:88vh;overflow-y:auto}
-.modal h3{font-size:15px;font-weight:600;margin-bottom:18px;color:var(--text);letter-spacing:-.2px}
-.modal-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* MAIN MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:40px 16px;overflow-y:auto;backdrop-filter:blur(6px)}
+.modal{background:var(--surf);border:1px solid var(--bdr2);border-radius:14px;width:640px;max-width:96vw;padding:24px;max-height:90vh;overflow-y:auto}
+.modal-lg{width:820px}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:18px;letter-spacing:-.2px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 .fgrp{display:flex;flex-direction:column;gap:4px}
 .fgrp.full{grid-column:1/-1}
 .fgrp.third{grid-column:span 1}
-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
-.fgrp input,.fgrp select,.fgrp textarea{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;font-family:var(--font);color:var(--text);width:100%;outline:none;transition:border .15s}
-.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--accent)}
-.fgrp select option{background:var(--surface2)}
-textarea{resize:vertical;min-height:60px}
-.mac{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+label{font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+.fgrp input,.fgrp select,.fgrp textarea{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:7px 10px;font-size:12px;font-family:var(--font);color:var(--txt);width:100%;outline:none;transition:border .12s}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--blue)}
+.fgrp input.auto-filled{border-color:rgba(52,211,153,.4);color:var(--green)}
+.fgrp select option{background:var(--surf2)}
+textarea{resize:vertical;min-height:58px}
+.mac{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bdr)}
+.sec{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;padding:14px 0 8px;border-bottom:1px solid var(--bdr);margin-bottom:12px;grid-column:1/-1}
 
-/* HELPERS */
+/* QUERY WINDOW (popup within modal) */
+.qwin{background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px;margin-bottom:14px}
+.qwin-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.qwin-title{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em}
+.qwin-search{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;font-size:11px;font-family:var(--font);color:var(--txt);outline:none;width:200px}
+.qwin-search::placeholder{color:var(--txt3)}
+.qwin-list{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.qcard{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .12s}
+.qcard:hover{border-color:var(--blue);background:rgba(79,156,249,.06)}
+.qcard.selected{border-color:var(--green);background:rgba(52,211,153,.06)}
+.qcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.qcard-id{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue)}
+.qcard-status{font-size:10px}
+.qcard-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.qcard-tag{background:var(--surf2);border:1px solid var(--bdr);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--txt2)}
+.qcard-tag.hi{color:var(--amber)}
+.selected-pill{display:flex;align-items:center;gap:8px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:7px;padding:7px 12px;margin-top:8px}
+.selected-pill-txt{font-size:12px;color:var(--green);font-weight:500;flex:1}
+.selected-pill button{padding:2px 8px;font-size:10px}
+
+/* GROUPS */
+.groups-wrap{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.group-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surf3);border-bottom:1px solid var(--bdr)}
+.group-hdr-left{display:flex;align-items:center;gap:8px}
+.group-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.group-name{font-size:12px;font-weight:600;color:var(--txt)}
+.group-meta{font-size:10px;color:var(--txt3);margin-top:1px}
+.group-body{padding:14px}
+.group-rows{display:flex;flex-direction:column;gap:8px}
+.container-row{display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 1fr 1fr 80px 28px;gap:6px;align-items:center}
+.container-row input,.container-row select{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;font-family:var(--font);color:var(--txt);width:100%;outline:none}
+.container-row input:focus,.container-row select:focus{border-color:var(--blue)}
+.container-row input.auto{border-color:rgba(52,211,153,.3);color:var(--green)}
+.cr-lbl{font-size:9px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;text-align:center}
+.cr-hdrs{display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 1fr 1fr 80px 28px;gap:6px;margin-bottom:4px}
+.add-row-btn{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--blue);cursor:pointer;padding:4px 0}
+.add-row-btn:hover{color:var(--green)}
+.vendor-select-btn{background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s;text-align:left;width:100%}
+.vendor-select-btn:hover{border-color:var(--blue);color:var(--txt)}
+.vendor-select-btn.filled{border-color:rgba(52,211,153,.3);color:var(--green)}
+
+/* MISC */
 .acell{display:flex;gap:4px}
-.dok{color:var(--green);font-weight:500}.dbad{color:var(--red);font-weight:500}
-.empty{text-align:center;padding:32px;color:var(--text3);font-size:12px;line-height:1.8}
-.empty strong{display:block;font-size:14px;color:var(--text2);margin-bottom:4px}
-
-/* CONTRACT PREVIEW CARD */
-.preview-card{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
-.preview-card:hover{border-color:var(--accent)}
-.preview-card.selected{border-color:var(--accent);background:rgba(79,142,247,.08)}
-.preview-card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
-.preview-card-meta{font-size:11px;color:var(--text3);display:flex;flex-wrap:wrap;gap:8px}
-.preview-card-meta span{background:var(--surface);padding:2px 6px;border-radius:4px}
-
-/* GROUP SECTION */
-.group-section{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
-.group-title{font-size:11px;font-weight:600;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;justify-content:space-between}
-.group-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.group-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-
-/* SPINNER */
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
+.dok{color:var(--green);font-weight:500}
+.dbad{color:var(--red);font-weight:500}
+.empty{text-align:center;padding:36px;color:var(--txt3);line-height:1.8}
+.empty strong{display:block;font-size:14px;color:var(--txt2);margin-bottom:4px}
+.divider{height:1px;background:var(--bdr);margin:14px 0}
 
 /* TOAST */
-.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:10px;font-size:12px;z-index:9999;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid;animation:fadeUp .25s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.toast.s{background:rgba(46,204,138,.12);border-color:rgba(46,204,138,.3);color:var(--green)}
-.toast.e{background:rgba(224,85,85,.12);border-color:rgba(224,85,85,.3);color:var(--red)}
-.toast.w{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.3);color:var(--amber)}
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:10px;font-size:12px;z-index:9999;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.5);border:1px solid;animation:fadeUp .2s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.t-s{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:var(--green)}
+.t-e{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red)}
+.t-w{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:var(--amber)}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<div id="modal-root"></div>
+<div id="mroot"></div>
 
 <script>
 const SUPA_URL='https://wktdubbvddynyigxmoyb.supabase.co';
 const SUPA_KEY='sb_publishable_-BjRXe1NkSTPQKQoRWDQVQ_Uu5CNZFX';
-const {createClient}=supabase;
+const{createClient}=supabase;
 const db=createClient(SUPA_URL,SUPA_KEY);
 
-// ── Master state ──────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────
 let S={
   page:'dashboard',
-  records:{orders:[],purchases:[],containers:[],transporters:[],loading:[],surveyor:[],customs:[],rates:[]},
-  masters:{buyers:[],products:[],exporters:[],transporterNames:[]},
-  modal:null,search:'',dbStatus:'loading'
+  recs:{orders:[],purchases:[],containers:[],transporters:[],loading:[],surveyor:[],customs:[],rates:[]},
+  masters:{buyers:[],products:[],exporters:[],transporters:[]},
+  dbStatus:'loading',
+  search:'',
+  // modal temp state
+  sel:{contract:null,booking:null,assignment:null,vendor1:null,vendor2:null},
+  groups:[],           // loading groups
+  qSearch:{contract:'',booking:'',assignment:'',vendor:''},
 };
 
-// ── Utilities ─────────────────────────────────────────────────────────────
+// ── DB ─────────────────────────────────────────────────────
+async function loadTable(t){
+  try{const{data,error}=await db.from(t).select('*').order('created_at',{ascending:false});
+    if(error)throw error;S.recs[t]=data||[];}
+  catch(e){S.recs[t]=[];console.warn(t,e.message);}
+}
+async function loadAll(){
+  S.dbStatus='loading';renderSidebar();
+  await Promise.all(Object.keys(S.recs).map(t=>loadTable(t)));
+  rebuildMasters();S.dbStatus='ok';renderAll();
+}
+function rebuildMasters(){
+  S.masters.buyers=[...new Set(S.recs.orders.map(o=>o.buyer).filter(Boolean))];
+  S.masters.products=[...new Set(S.recs.orders.map(o=>o.product).filter(Boolean))];
+  S.masters.exporters=[...new Set(S.recs.orders.map(o=>o.exporter).filter(Boolean))];
+  S.masters.transporters=[...new Set(S.recs.transporters.map(o=>o.transporter).filter(Boolean))];
+}
+async function saveRec(table,data,id){
+  try{
+    let res=id?await db.from(table).update(data).eq('id',id).select():await db.from(table).insert(data).select();
+    if(res.error)throw res.error;
+    await loadTable(table);rebuildMasters();renderAll();closeModal();toast('Saved');
+  }catch(e){toast(e.message,'e');console.error(e);}
+}
+async function delRec(table,id){
+  if(!confirm('Delete this record?'))return;
+  try{const{error}=await db.from(table).delete().eq('id',id);
+    if(error)throw error;await loadTable(table);renderAll();toast('Deleted','w');}
+  catch(e){toast(e.message,'e');}
+}
+
+// ── Helpers ────────────────────────────────────────────────
+const today=()=>new Date().toISOString().slice(0,10);
+const fy=()=>{const y=new Date().getFullYear(),m=new Date().getMonth();return m>=3?`${y}-${String(y+1).slice(2)}`:`${y-1}-${String(y).slice(2)}`;}
 const fmt=(n)=>n!=null&&n!==''?Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
 const fmtN=(n)=>n!=null&&n!==''?Number(n).toLocaleString('en-IN'):'—';
 const fv=(id)=>{const e=document.getElementById(id);return e?e.value:'';}
-const today=()=>new Date().toISOString().slice(0,10);
-const fy=()=>{const y=new Date().getFullYear();const m=new Date().getMonth();return m>=3?`${y}-${String(y+1).slice(2)}`:String(y-1)+'-'+String(y).slice(2);}
+const uid=(p)=>`${p}-${Date.now().toString(36).toUpperCase()}`;
 
 function toast(msg,type='s'){
   const d=document.createElement('div');
-  d.className=`toast ${type}`;d.textContent=msg;
-  document.body.appendChild(d);setTimeout(()=>d.remove(),2800);
+  d.className=`toast t-${type}`;d.textContent=msg;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2600);
 }
-
 function bdg(v){
-  const m={Confirmed:'bg',Pending:'ba',Cancelled:'br',Matched:'bg',Discrepancy:'br',Approved:'bb',Paid:'bg',Unpaid:'ba',Overdue:'br',Partial:'bpu','Booked':'bb',Yes:'bg',No:'br','Gate-In Done':'bg','LEO Received':'bb','Clearance Pending':'ba',Completed:'bg','In Transit':'bb',Assigned:'ba','Applied-Pending':'ba','Ready for Customs':'bg','Fumigation Done':'bb',Scheduled:'ba','In Progress':'bb',Passed:'bg',Failed:'br','Re-inspection':'ba'};
+  const m={Confirmed:'bg',Pending:'ba',Cancelled:'br',Matched:'bg',Discrepancy:'br',Approved:'bb',Paid:'bg',Unpaid:'ba',Overdue:'br','Booked':'bb',Yes:'bg',No:'br','Gate-In Done':'bg','LEO Received':'bb','Clearance Pending':'ba',Completed:'bg','In Transit':'bb',Assigned:'ba','Applied-Pending':'ba','Ready for Customs':'bg',Scheduled:'ba','In Progress':'bb',Passed:'bg',Failed:'br','Re-inspection':'ba','Partial':'bp'};
   return`<span class="badge ${m[v]||'bgr'}">${v||'—'}</span>`;
 }
-
-// ── DB helpers ────────────────────────────────────────────────────────────
-async function loadTable(t){
-  try{
-    const{data,error}=await db.from(t).select('*').order('created_at',{ascending:false});
-    if(error)throw error;
-    S.records[t]=data||[];
-  }catch(e){S.records[t]=[];console.warn(t,e.message);}
-}
-
-async function loadAll(){
-  S.dbStatus='loading';renderSidebar();
-  await Promise.all(Object.keys(S.records).map(t=>loadTable(t)));
-  rebuildMasters();
-  S.dbStatus='ok';renderAll();
-}
-
-function rebuildMasters(){
-  S.masters.buyers=[...new Set(S.records.orders.map(o=>o.buyer).filter(Boolean))];
-  S.masters.products=[...new Set(S.records.orders.map(o=>o.product).filter(Boolean))];
-  S.masters.exporters=[...new Set(S.records.orders.map(o=>o.exporter).filter(Boolean))];
-  S.masters.transporterNames=[...new Set(S.records.transporters.map(o=>o.transporter).filter(Boolean))];
-}
-
-async function saveRec(table,data,id){
-  try{
-    let res;
-    if(id){res=await db.from(table).update(data).eq('id',id).select();}
-    else{res=await db.from(table).insert(data).select();}
-    if(res.error)throw res.error;
-    await loadTable(table);
-    rebuildMasters();
-    renderAll();closeModal();toast('Saved successfully');
-  }catch(e){toast('Error: '+e.message,'e');console.error(e);}
-}
-
-async function delRec(table,id){
-  if(!confirm('Delete this record?'))return;
-  try{
-    const{error}=await db.from(table).delete().eq('id',id);
-    if(error)throw error;
-    await loadTable(table);renderAll();toast('Deleted','w');
-  }catch(e){toast('Error: '+e.message,'e');}
-}
-
-// ── Navigation ────────────────────────────────────────────────────────────
-function setPage(p){S.page=p;S.modal=null;S.search='';renderAll();}
-function closeModal(){S.modal=null;document.getElementById('modal-root').innerHTML='';}
-function openModal(html){document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;}
-
-// ── Form helpers ──────────────────────────────────────────────────────────
-function mf(lbl,id,type='text',opts='',full=false,val=''){
-  const cls='fgrp'+(full?' full':'');
-  if(type==='select')return`<div class="${cls}"><label>${lbl}</label><select id="${id}">${opts}</select></div>`;
-  if(type==='textarea')return`<div class="${cls}"><label>${lbl}</label><textarea id="${id}">${val||''}</textarea></div>`;
-  return`<div class="${cls}"><label>${lbl}</label><input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}"></div>`;
+function setPage(p){S.page=p;S.search='';renderAll();}
+function closeModal(){document.getElementById('mroot').innerHTML='';}
+function openModal(html){document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;}
+function mf(lbl,id,type='text',opts='',full=false,val='',cls=''){
+  const c='fgrp'+(full?' full':'');
+  if(type==='select')return`<div class="${c}"><label>${lbl}</label><select id="${id}" class="${cls}">${opts}</select></div>`;
+  if(type==='textarea')return`<div class="${c}"><label>${lbl}</label><textarea id="${id}" class="${cls}">${val||''}</textarea></div>`;
+  return`<div class="${c}"><label>${lbl}</label><input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}" class="${cls}"></div>`;
 }
 function sel(opts,cur){return opts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${o}</option>`).join('');}
-function datalistField(lbl,id,listId,items,full=false,val=''){
-  const cls='fgrp'+(full?' full':'');
-  return`<div class="${cls}"><label>${lbl}</label><input id="${id}" list="${listId}" value="${(val||'').toString().replace(/"/g,'&quot;')}" autocomplete="off"><datalist id="${listId}">${items.map(i=>`<option value="${i}">`).join('')}</datalist></div>`;
+function dlf(lbl,id,lid,items,full=false,val=''){
+  const c='fgrp'+(full?' full':'');
+  return`<div class="${c}"><label>${lbl}</label><input id="${id}" list="${lid}" value="${(val||'').replace(/"/g,'&quot;')}" autocomplete="off"><datalist id="${lid}">${items.map(i=>`<option value="${i}">`).join('')}</datalist></div>`;
 }
-function mw(title,fields,onSave){
-  return`<div class="modal"><h3>${title}</h3>${fields}<div class="mac"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="${onSave}">Save to Database</button></div></div>`;
-}
-function secHdr(txt){return`<div class="modal-section">${txt}</div>`;}
-
-// ── Contract number generator ─────────────────────────────────────────────
-function genContractNo(exporterName){
-  if(!exporterName)return'';
-  const words=exporterName.trim().split(/\s+/);
-  const prefix=words.map(w=>w[0]).join('').toUpperCase().slice(0,4);
-  const fy_str=fy().replace('-','-');
-  const existing=S.records.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(prefix+'/'));
-  const seq=String(existing.length+1).padStart(3,'0');
-  return`${prefix}/${fy_str}/${seq}`;
+function sec(t){return`<div class="sec">${t}</div>`;}
+function mw(title,body,onSave,lg=false){
+  return`<div class="modal${lg?' modal-lg':''}"><h3>${title}</h3>${body}<div class="mac"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="${onSave}">Save to Database</button></div></div>`;
 }
 
-// ── Contract preview cards ────────────────────────────────────────────────
-function pendingContractCards(selectedId,onSelect){
-  const pending=S.records.orders.filter(o=>o.status==='Confirmed');
-  if(!pending.length)return`<div style="color:var(--text3);font-size:12px;padding:8px 0">No confirmed contracts available.</div>`;
-  return pending.map(o=>`
-    <div class="preview-card${selectedId===o.id?' selected':''}" onclick="${onSelect}('${o.id}')">
-      <div class="preview-card-title">${o.contract_no||o.id} — ${o.buyer||'—'}</div>
-      <div class="preview-card-meta">
-        <span>📦 ${o.product||'—'}</span>
-        <span>⚖️ ${fmtN(o.qty)} MT</span>
-        <span>💰 ${o.currency||'USD'} ${fmt(o.unit_price)}</span>
-        <span>🏭 ${o.exporter||'—'}</span>
+// ── Contract number generator ──────────────────────────────
+function genContractNo(exp){
+  if(!exp)return'';
+  const pfx=exp.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,4);
+  const existing=S.recs.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(pfx+'/'));
+  return`${pfx}/${fy()}/${String(existing.length+1).padStart(3,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUERY WINDOWS — reusable popup pickers
+// ═══════════════════════════════════════════════════════════
+
+// Contract query window (pending/confirmed contracts)
+function contractQueryWindow(selectedId, onSelectFn, filterStatus='Confirmed'){
+  const q=S.qSearch.contract||'';
+  const list=S.recs.orders.filter(o=>(filterStatus==='all'||o.signed_contract==='Yes')&&
+    (!q||[o.contract_no,o.buyer,o.product,o.exporter].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selectedId?S.recs.orders.find(o=>o.id===selectedId):null;
+  return`
+  <div class="qwin">
+    <div class="qwin-hdr">
+      <span class="qwin-title">📋 Select Pending Contract</span>
+      <input class="qwin-search" placeholder="Search contract, buyer, product…" value="${q}"
+        oninput="S.qSearch.contract=this.value;refreshQWin()">
+    </div>
+    <div class="qwin-list" id="qwin-contract">
+      ${list.length?list.map(o=>`
+        <div class="qcard${selectedId===o.id?' selected':''}" onclick="${onSelectFn}('${o.id}')">
+          <div class="qcard-top">
+            <span class="qcard-id">${o.contract_no||o.id}</span>
+            ${bdg(o.signed_contract==='Yes'?'Confirmed':'Pending')}
+          </div>
+          <div class="qcard-row">
+            <span class="qcard-tag">👤 ${o.buyer||'—'}</span>
+            <span class="qcard-tag">🏭 ${o.exporter||'—'}</span>
+            <span class="qcard-tag hi">📦 ${o.product||'—'}</span>
+            <span class="qcard-tag">⚖️ ${fmtN(o.qty)} MT</span>
+            <span class="qcard-tag hi">${o.currency||'USD'} ${fmt(o.unit_price)}</span>
+            <span class="qcard-tag">📅 ${o.contract_date||'—'}</span>
+          </div>
+        </div>`).join(''):`<div class="empty">No confirmed contracts found.</div>`}
+    </div>
+    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.contract_no||selObj.id} — ${selObj.buyer||'—'} · ${selObj.product||'—'}</span><button class="sm danger" onclick="${onSelectFn}(null)">Clear</button></div>`:''}
+  </div>`;
+}
+
+// Booking query window (pending container bookings)
+function bookingQueryWindow(selectedId, onSelectFn){
+  const q=S.qSearch.booking||'';
+  const list=S.recs.containers.filter(c=>(c.status==='Booked'||c.status==='Confirmed')&&
+    (!q||[c.booking_ref,c.shipping_line,c.vessel,c.linked_contract_no].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selectedId?S.recs.containers.find(c=>c.id===selectedId):null;
+  return`
+  <div class="qwin">
+    <div class="qwin-hdr">
+      <span class="qwin-title">🚢 Select Pending Container Booking</span>
+      <input class="qwin-search" placeholder="Search booking ref, line…" value="${q}"
+        oninput="S.qSearch.booking=this.value;refreshQWin()">
+    </div>
+    <div class="qwin-list" id="qwin-booking">
+      ${list.length?list.map(c=>`
+        <div class="qcard${selectedId===c.id?' selected':''}" onclick="${onSelectFn}('${c.id}')">
+          <div class="qcard-top">
+            <span class="qcard-id">${c.booking_ref||c.id}</span>
+            ${bdg(c.status||'Booked')}
+          </div>
+          <div class="qcard-row">
+            <span class="qcard-tag">🚢 ${c.shipping_line||'—'}</span>
+            <span class="qcard-tag">⚓ ${c.vessel||'—'}</span>
+            <span class="qcard-tag hi">📦 ${c.num_containers||'?'} × ${c.container_type||'—'}</span>
+            <span class="qcard-tag">📋 ${c.linked_contract_no||'—'}</span>
+            <span class="qcard-tag">📅 ETD: ${c.etd||'—'}</span>
+            <span class="qcard-tag">🛳️ ${c.pol||'—'} → ${c.pod||'—'}</span>
+          </div>
+        </div>`).join(''):`<div class="empty">No pending bookings found.</div>`}
+    </div>
+    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.booking_ref||selObj.id} — ${selObj.shipping_line||'—'} · ${selObj.num_containers||'?'} containers · ETD ${selObj.etd||'—'}</span><button class="sm danger" onclick="${onSelectFn}(null)">Clear</button></div>`:''}
+  </div>`;
+}
+
+// Assignment query window (pending loading assignments from transporters)
+function assignmentQueryWindow(selectedId, onSelectFn){
+  const q=S.qSearch.assignment||'';
+  const list=S.recs.transporters.filter(t=>(t.status==='Assigned'||t.status==='In Transit')&&
+    (!q||[t.assignment_id,t.transporter,t.booking_ref,t.vehicle_no].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selectedId?S.recs.transporters.find(t=>t.assignment_id===selectedId||t.id===selectedId):null;
+  return`
+  <div class="qwin">
+    <div class="qwin-hdr">
+      <span class="qwin-title">🚛 Select Pending Loading Assignment</span>
+      <input class="qwin-search" placeholder="Search assignment ID, transporter…" value="${q}"
+        oninput="S.qSearch.assignment=this.value;refreshQWin()">
+    </div>
+    <div class="qwin-list" id="qwin-assignment">
+      ${list.length?list.map(t=>`
+        <div class="qcard${selectedId===(t.assignment_id||t.id)?' selected':''}" onclick="${onSelectFn}('${t.assignment_id||t.id}','${t.booking_ref||''}','${t.order_id||''}','${t.num_containers||1}')">
+          <div class="qcard-top">
+            <span class="qcard-id" style="color:var(--purple)">${t.assignment_id||t.id}</span>
+            ${bdg(t.status||'Assigned')}
+          </div>
+          <div class="qcard-row">
+            <span class="qcard-tag">🚢 ${t.booking_ref||'—'}</span>
+            <span class="qcard-tag">🚛 ${t.transporter||'—'}</span>
+            <span class="qcard-tag hi">📦 ${t.num_containers||'?'} containers</span>
+            <span class="qcard-tag">📋 ${t.order_id||'—'}</span>
+            <span class="qcard-tag">📅 ${t.transport_date||'—'}</span>
+            <span class="qcard-tag">🛣️ ${t.route||'—'}</span>
+          </div>
+        </div>`).join(''):`<div class="empty">No pending assignments. Create one in Transporters first.</div>`}
+    </div>
+    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.assignment_id||selObj.id} — ${selObj.transporter||'—'} · Booking: ${selObj.booking_ref||'—'} · ${selObj.num_containers||'?'} containers</span><button class="sm danger" onclick="${onSelectFn}(null,'','','')">Clear</button></div>`:''}
+  </div>`;
+}
+
+// Vendor/Purchase query window
+function vendorQueryWindow(selectedId, onSelectFn, rowIdx){
+  const q=S.qSearch.vendor||'';
+  const list=S.recs.purchases.filter(p=>Number(p.pending_qty||p.qty||0)>0&&
+    (!q||[p.vendor,p.commodity,p.bag_marking,p.linked_contract_no].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selectedId?S.recs.purchases.find(p=>p.id===selectedId):null;
+  return`
+  <div class="modal" style="max-width:600px">
+    <h3>Select Vendor Purchase Lot</h3>
+    <div class="qwin" style="margin-bottom:0">
+      <div class="qwin-hdr">
+        <span class="qwin-title">📦 Pending Purchase Lots</span>
+        <input class="qwin-search" placeholder="Search vendor, product, marking…" value="${q}"
+          oninput="S.qSearch.vendor=this.value;refreshVendorQWin(${rowIdx})">
       </div>
-    </div>`).join('');
-}
-
-function pendingBookingCards(selectedId,onSelect){
-  const pending=S.records.containers.filter(c=>c.status==='Booked'||c.status==='Confirmed');
-  if(!pending.length)return`<div style="color:var(--text3);font-size:12px;padding:8px 0">No pending bookings.</div>`;
-  return pending.map(c=>`
-    <div class="preview-card${selectedId===c.id?' selected':''}" onclick="${onSelect}('${c.id}')">
-      <div class="preview-card-title">${c.booking_ref||c.id} — ${c.shipping_line||'—'}</div>
-      <div class="preview-card-meta">
-        <span>🚢 ${c.vessel||'—'}</span>
-        <span>📦 ${c.num_containers||'?'} × ${c.container_type||'—'}</span>
-        <span>📅 ETD: ${c.etd||'—'}</span>
-        <span>🏷️ ${c.linked_contract_no||'—'}</span>
+      <div class="qwin-list">
+        ${list.length?list.map(p=>`
+          <div class="qcard${selectedId===p.id?' selected':''}" onclick="${onSelectFn}('${p.id}',${rowIdx})">
+            <div class="qcard-top">
+              <span class="qcard-id" style="color:var(--amber)">${p.vendor||'—'}</span>
+              <span class="badge ba">${fmtN(p.pending_qty||p.qty)} MT pending</span>
+            </div>
+            <div class="qcard-row">
+              <span class="qcard-tag hi">📦 ${p.commodity||'—'}</span>
+              <span class="qcard-tag">🏷️ ${p.bag_marking||'—'}</span>
+              <span class="qcard-tag">💰 ₹${fmt(p.price_inr)}/MT</span>
+              <span class="qcard-tag">📋 ${p.linked_contract_no||'—'}</span>
+              <span class="qcard-tag">📅 ${p.purchase_date||'—'}</span>
+            </div>
+          </div>`).join(''):`<div class="empty">No pending vendor lots found.</div>`}
       </div>
-    </div>`).join('');
+    </div>
+    <div class="mac"><button onclick="closeVendorQWin()">Cancel</button></div>
+  </div>`;
 }
 
-function pendingPurchaseCards(selectedId,onSelect){
-  const pending=S.records.purchases.filter(p=>Number(p.pending_qty||p.qty)>0);
-  if(!pending.length)return`<div style="color:var(--text3);font-size:12px;padding:8px 0">No pending purchase lots.</div>`;
-  return pending.map(p=>`
-    <div class="preview-card${selectedId===p.id?' selected':''}" onclick="${onSelect}('${p.id}')">
-      <div class="preview-card-title">${p.vendor||'—'} — ${p.commodity||'—'}</div>
-      <div class="preview-card-meta">
-        <span>⚖️ ${fmtN(p.pending_qty||p.qty)} MT pending</span>
-        <span>🏷️ ${p.bag_marking||'—'}</span>
-        <span>💰 ₹${fmt(p.price_inr)}/MT</span>
-        <span>📋 ${p.linked_contract_no||'—'}</span>
+function refreshQWin(){
+  // Re-render just the query window content based on current modal
+  const modal=document.querySelector('.modal');
+  if(modal)renderAll();
+}
+function refreshVendorQWin(rowIdx){
+  document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeVendorQWin()">${vendorQueryWindow(S.groups[rowIdx]?.purchaseId,'selectVendorForRow',rowIdx)}</div>`;
+}
+function closeVendorQWin(){
+  // reopen loading modal
+  openLoadingModal(S._editingLoadId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// GROUPS STATE (for loading assignment)
+// ═══════════════════════════════════════════════════════════
+// S.groups = array of groups, each group = {id, name, rows:[{containerId,vehicleId,qty,from,to,vendor,bagMarking,surveyor,rate,purchaseId}]}
+
+function initGroups(existingData){
+  if(existingData&&existingData.groups){
+    try{S.groups=JSON.parse(existingData.groups);}catch(e){S.groups=[];}
+  } else {S.groups=[];}
+}
+
+function addGroup(){
+  S.groups.push({id:uid('GRP'),name:`Group ${S.groups.length+1}`,rows:[]});
+  openLoadingModal(S._editingLoadId);
+}
+function removeGroup(gi){
+  S.groups.splice(gi,1);
+  openLoadingModal(S._editingLoadId);
+}
+function addRowToGroup(gi){
+  S.groups[gi].rows.push({containerId:'',vehicleId:'',qty:'',from:'',to:'',vendor:'',bagMarking:'',surveyor:'',rate:'',purchaseId:''});
+  openLoadingModal(S._editingLoadId);
+}
+function removeRowFromGroup(gi,ri){
+  S.groups[gi].rows.splice(ri,1);
+  openLoadingModal(S._editingLoadId);
+}
+function updateGroupRow(gi,ri,field,val){
+  if(S.groups[gi]&&S.groups[gi].rows[ri])S.groups[gi].rows[ri][field]=val;
+}
+function selectVendorForRow(purchaseId, rowIdx){
+  // rowIdx encodes gi*1000+ri
+  const gi=Math.floor(rowIdx/1000),ri=rowIdx%1000;
+  const p=S.recs.purchases.find(x=>x.id===purchaseId);
+  if(p&&S.groups[gi]&&S.groups[gi].rows[ri]){
+    S.groups[gi].rows[ri].vendor=p.vendor||'';
+    S.groups[gi].rows[ri].bagMarking=p.bag_marking||'';
+    S.groups[gi].rows[ri].purchaseId=purchaseId;
+  }
+  openLoadingModal(S._editingLoadId);
+}
+function openVendorPicker(gi,ri){
+  const rowIdx=gi*1000+ri;
+  S.qSearch.vendor='';
+  document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeVendorQWin()">${vendorQueryWindow(S.groups[gi]?.rows[ri]?.purchaseId,'selectVendorForRow',rowIdx)}</div>`;
+}
+
+function renderGroups(){
+  if(!S.groups.length)return`<div style="color:var(--txt3);font-size:12px;padding:8px 0;text-align:center">No groups yet. Click "Add Group" to create one.</div>`;
+  return`<div class="groups-wrap">${S.groups.map((g,gi)=>`
+    <div class="group-box">
+      <div class="group-hdr">
+        <div class="group-hdr-left">
+          <div class="group-num">${gi+1}</div>
+          <div>
+            <div class="group-name"><input style="background:transparent;border:none;color:var(--txt);font-size:12px;font-weight:600;font-family:var(--font);width:200px;outline:none" value="${g.name}" oninput="S.groups[${gi}].name=this.value"></div>
+            <div class="group-meta">${g.rows.length} container row${g.rows.length!==1?'s':''} · Total: ${fmtN(g.rows.reduce((s,r)=>s+(Number(r.qty)||0),0))} MT</div>
+          </div>
+        </div>
+        <button class="sm danger" onclick="removeGroup(${gi})">Remove Group</button>
       </div>
-    </div>`).join('');
+      <div class="group-body">
+        <div class="cr-hdrs">
+          ${['Container No.','Vehicle No.','Qty (MT)','From','To','Vendor (auto)','Bag Marking (auto)','Surveyor / Rate',''].map(h=>`<div class="cr-lbl">${h}</div>`).join('')}
+        </div>
+        <div class="group-rows">
+          ${g.rows.map((r,ri)=>`
+            <div class="container-row">
+              <input placeholder="TCKU123456-7" value="${r.containerId||''}" oninput="updateGroupRow(${gi},${ri},'containerId',this.value)">
+              <input placeholder="TN01AB1234" value="${r.vehicleId||''}" oninput="updateGroupRow(${gi},${ri},'vehicleId',this.value)">
+              <input type="number" placeholder="0.000" value="${r.qty||''}" oninput="updateGroupRow(${gi},${ri},'qty',this.value)">
+              <input placeholder="Vendor location" value="${r.from||''}" oninput="updateGroupRow(${gi},${ri},'from',this.value)">
+              <input placeholder="Port / CFS" value="${r.to||''}" oninput="updateGroupRow(${gi},${ri},'to',this.value)">
+              <button class="vendor-select-btn${r.vendor?' filled':''}" onclick="openVendorPicker(${gi},${ri})">${r.vendor||'+ Select Vendor'}</button>
+              <input placeholder="Bag marking" value="${r.bagMarking||''}" class="${r.bagMarking?'auto':''}" oninput="updateGroupRow(${gi},${ri},'bagMarking',this.value)">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
+                <input placeholder="Surveyor" value="${r.surveyor||''}" oninput="updateGroupRow(${gi},${ri},'surveyor',this.value)">
+                <input type="number" placeholder="Rate" value="${r.rate||''}" oninput="updateGroupRow(${gi},${ri},'rate',this.value)">
+              </div>
+              <button class="sm danger ghost" onclick="removeRowFromGroup(${gi},${ri})">✕</button>
+            </div>`).join('')}
+        </div>
+        <div class="add-row-btn" onclick="addRowToGroup(${gi})">＋ Add container row to this group</div>
+      </div>
+    </div>`).join('')}</div>`;
 }
 
-// ── NAV ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════════
 const NAV=[
-  {id:'dashboard',label:'Dashboard',color:'#4f8ef7'},
-  {id:'orders',label:'Orders & Contracts',color:'#4f8ef7'},
-  {id:'purchases',label:'Raw Material Purchase',color:'#f5a623'},
-  {id:'containers',label:'Container Bookings',color:'#2ecc8a'},
-  {id:'transporters',label:'Transporters & Plot',color:'#8b6cf7'},
+  {id:'dashboard',label:'Dashboard',color:'#4f9cf9'},
+  {id:'orders',label:'Orders & Contracts',color:'#4f9cf9'},
+  {id:'purchases',label:'Raw Material Purchase',color:'#fbbf24'},
+  {id:'containers',label:'Container Bookings',color:'#34d399'},
+  {id:'transporters',label:'Transporters & Plot',color:'#a78bfa'},
   {id:'loading',label:'Loading Assignment',color:'#64748b'},
-  {id:'surveyor',label:'Surveyor Report & Loading',color:'#06b6d4'},
-  {id:'customs',label:'Customs & Port',color:'#e05555'},
+  {id:'surveyor',label:'Surveyor Report',color:'#22d3ee'},
+  {id:'customs',label:'Customs & Port',color:'#f87171'},
   {id:'rates',label:'Master Rates',color:'#5a6484'},
 ];
 
 function renderSidebar(){
-  const el=document.getElementById('sidebar-nav');if(!el)return;
+  const el=document.getElementById('snav');if(!el)return;
   const pill=S.dbStatus==='ok'
-    ?`<div class="db-pill"><span class="pulse"></span>Live · Supabase</div>`
+    ?`<div class="db-pill db-ok"><span class="pulse"></span>Live · Supabase</div>`
     :S.dbStatus==='loading'
-    ?`<div class="db-pill loading"><span class="spin"></span>Connecting…</div>`
-    :`<div class="db-pill err"><span class="pulse"></span>DB Error</div>`;
+    ?`<div class="db-pill db-load"><span class="spin"></span>Connecting…</div>`
+    :`<div class="db-pill db-err"><span class="pulse"></span>DB Error</div>`;
   el.innerHTML=pill+NAV.map(n=>`<div class="nav-item${S.page===n.id?' active':''}" onclick="setPage('${n.id}')"><span class="nav-dot" style="background:${n.color}"></span>${n.label}</div>`).join('');
 }
-
 function renderAll(){
   const root=document.getElementById('root');if(!root)return;
   const pc=pages[S.page]||pages.dashboard;
-  const cnt=S.records[S.page];
+  const cnt=S.recs[S.page];
   root.innerHTML=`
   <div class="app">
     <div class="sidebar">
-      <div class="logo"><h1>ExIm Manager</h1><p>v2.0 · Supabase live</p></div>
+      <div class="logo"><h1>ExIm Manager</h1><p>v3 · Supabase</p></div>
       <div class="nav-sec">Modules</div>
-      <div id="sidebar-nav"></div>
-      <div style="margin-top:auto;padding:12px 10px 16px;border-top:1px solid var(--border)">
-        <div style="font-size:9px;color:var(--text3);padding:0 6px;line-height:1.6">All data synced to cloud.<br>Shared across all users.</div>
+      <div id="snav"></div>
+      <div style="margin-top:auto;padding:12px 10px 14px;border-top:1px solid var(--bdr)">
+        <div style="font-size:9px;color:var(--txt3);padding:0 6px;line-height:1.6">All data synced to cloud.<br>Shared across all users.</div>
       </div>
     </div>
     <div class="main">
       <div class="topbar">
         <h2>${pc.title}${Array.isArray(cnt)?`<span class="pbadge">${cnt.length}</span>`:''}</h2>
-        <div style="display:flex;gap:6px">
-          <button class="ghost sm" onclick="loadAll()">↻ Sync</button>
-        </div>
+        <button class="ghost sm" onclick="loadAll()">↻ Sync</button>
       </div>
       <div class="content" id="ca">${pc.render()}</div>
     </div>
   </div>`;
   renderSidebar();
 }
-
 function tbl(rows,hdrs,rowFn,emsg){
   return`<div style="overflow-x:auto"><table><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(rowFn).join(''):`<tr><td colspan="${hdrs.length}"><div class="empty"><strong>No records yet</strong>${emsg}</div></td></tr>`}</tbody></table></div>`;
 }
 
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // DASHBOARD
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function renderDash(){
-  const o=S.records.orders||[],p=S.records.purchases||[],c=S.records.containers||[],cu=S.records.customs||[];
-  const conf=o.filter(x=>x.status==='Confirmed').length;
+  const o=S.recs.orders||[],p=S.recs.purchases||[],c=S.recs.containers||[];
+  const conf=o.filter(x=>x.signed_contract==='Yes').length;
   const ttlCon=c.reduce((s,x)=>s+(Number(x.num_containers)||0),0);
-  const pipeline=[
-    {l:'Orders',n:o.length,col:'#4f8ef7'},
-    {l:'Confirmed',n:conf,col:'#2ecc8a'},
-    {l:'Purchases',n:p.length,col:'#f5a623'},
-    {l:'Bookings',n:c.length,col:'#2ecc8a'},
-    {l:'Loading',n:(S.records.loading||[]).length,col:'#64748b'},
-    {l:'Surveyor',n:(S.records.surveyor||[]).length,col:'#06b6d4'},
-    {l:'Customs',n:cu.length,col:'#e05555'},
-  ];
+  const steps=[{l:'Orders',n:o.length,c:'#4f9cf9'},{l:'Confirmed',n:conf,c:'#34d399'},{l:'Purchases',n:p.length,c:'#fbbf24'},{l:'Bookings',n:c.length,c:'#34d399'},{l:'Loading',n:(S.recs.loading||[]).length,c:'#64748b'},{l:'Surveyor',n:(S.recs.surveyor||[]).length,c:'#22d3ee'},{l:'Customs',n:(S.recs.customs||[]).length,c:'#f87171'}];
   return`
   <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-lbl">Total Orders</div><div class="kpi-val blue">${o.length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Total Contracts</div><div class="kpi-val blue">${o.length}</div></div>
     <div class="kpi"><div class="kpi-lbl">Confirmed</div><div class="kpi-val green">${conf}</div></div>
     <div class="kpi"><div class="kpi-lbl">Containers Booked</div><div class="kpi-val blue">${ttlCon}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Purchases</div><div class="kpi-val amber">${p.length}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Customs Cleared</div><div class="kpi-val green">${cu.filter(x=>x.status==='Gate-In Done'||x.status==='Loaded on Vessel').length}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Pending Contracts</div><div class="kpi-val amber">${o.filter(x=>x.status==='Pending').length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Active Purchases</div><div class="kpi-val amber">${p.length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Customs Cleared</div><div class="kpi-val green">${(S.recs.customs||[]).filter(x=>x.status==='Gate-In Done'||x.status==='Loaded on Vessel').length}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Pending Contracts</div><div class="kpi-val amber">${o.filter(x=>x.signed_contract!=='Yes').length}</div></div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div class="card"><div class="card-ttl">Workflow Pipeline</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-        ${pipeline.map(s=>`<div style="text-align:center"><div style="width:36px;height:${Math.max(24,s.n*8+24)}px;background:${s.col}22;border:1px solid ${s.col}44;border-radius:6px 6px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:11px;font-weight:600;color:${s.col};font-family:var(--mono)">${s.n}</div><div style="font-size:9px;color:var(--text3);margin-top:4px;white-space:nowrap">${s.l}</div></div>`).join('')}
+    <div class="card"><div class="card-ttl">Workflow pipeline</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        ${steps.map(s=>`<div style="text-align:center"><div style="width:40px;height:${Math.max(28,s.n*8+28)}px;background:${s.c}18;border:1px solid ${s.c}40;border-radius:6px 6px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:700;color:${s.c};font-family:var(--mono)">${s.n}</div><div style="font-size:9px;color:var(--txt3);margin-top:4px;white-space:nowrap">${s.l}</div></div>`).join('')}
       </div>
     </div>
     <div class="card"><div class="card-ttl">Recent Contracts</div>
-      ${o.slice(0,5).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:500">${x.contract_no||x.id}</span>${bdg(x.status||'Pending')}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${x.buyer||'—'} · ${x.product||'—'} · ${fmtN(x.qty)} MT</div></div>`).join('')||`<div class="empty">No contracts yet</div>`}
+      ${o.slice(0,5).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue)">${x.contract_no||x.id}</span>${bdg(x.signed_contract==='Yes'?'Confirmed':'Pending')}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${x.buyer||'—'} · ${x.product||'—'} · ${fmtN(x.qty)} MT</div></div>`).join('')||`<div class="empty">No contracts yet</div>`}
     </div>
   </div>`;
 }
 
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // A. ORDERS & CONTRACTS
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function renderOrders(){
-  const rows=(S.records.orders||[]).filter(o=>!S.search||o.buyer?.toLowerCase().includes(S.search.toLowerCase())||o.contract_no?.toLowerCase().includes(S.search.toLowerCase())||o.product?.toLowerCase().includes(S.search.toLowerCase()));
+  const rows=(S.recs.orders||[]).filter(o=>!S.search||[o.buyer,o.contract_no,o.product,o.exporter].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search buyer, contract, product…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderOrders()"><button class="pri" onclick="openOrderModal()">+ New Contract</button></div>`+
-  `<div class="card">`+tbl(rows,['Contract No.','Date','Buyer','Buyer Port','Product','Qty (MT)','Currency','Unit Price','Exporter','Bag Marking','Bag Type','Status','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.contract_no||'—'}</span></td>
+  `<div class="card">`+tbl(rows,['Contract No.','Date','Buyer','Buyer Port','Product','Qty (MT)','Currency','Price','Exporter','Bag Marking','Bag Type','Signed','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--blue)">${r.contract_no||'—'}</span></td>
     <td>${r.contract_date||'—'}</td>
-    <td><strong>${r.buyer||'—'}</strong></td>
-    <td>${r.buyer_port||'—'}</td>
+    <td><strong>${r.buyer||'—'}</strong></td><td>${r.buyer_port||'—'}</td>
     <td>${r.product||'—'}</td>
-    <td style="font-family:var(--mono)">${fmtN(r.qty)}</td>
-    <td>${r.currency||'USD'}</td>
-    <td style="font-family:var(--mono)">${fmt(r.unit_price)}</td>
-    <td>${r.exporter||'—'}</td>
-    <td>${r.bag_marking||'—'}</td>
-    <td>${r.bag_type||'—'}</td>
+    <td class="mono">${fmtN(r.qty)}</td><td>${r.currency||'USD'}</td>
+    <td class="mono">${fmt(r.unit_price)}</td>
+    <td>${r.exporter||'—'}</td><td>${r.bag_marking||'—'}</td><td>${r.bag_type||'—'}</td>
     <td>${bdg(r.signed_contract==='Yes'?'Confirmed':'Pending')}</td>
     <td><div class="acell"><button class="sm" onclick="openOrderModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('orders','${r.id}')">Del</button></div></td>
   </tr>`,'Click + New Contract to begin.')+`</div>`;
 }
-
-let _orderExporter='';
 function openOrderModal(id){
-  const r=id?(S.records.orders||[]).find(o=>o.id===id):{};
-  _orderExporter=r.exporter||'';
-  const suggestedNo=id?r.contract_no:genContractNo(r.exporter||'');
-  const currencies=['USD','EUR','GBP','INR','AED','SGD'];
+  const r=id?(S.recs.orders||[]).find(o=>o.id===id):{};
+  const currencies=['USD','EUR','GBP','INR','AED','SGD','JPY'];
   const bagTypes=['PP Bag','Jute Bag','HDPE Bag','Paper Bag','Bulk','Other'];
-  const f=`<div class="fg">
-    ${secHdr('Contract Details')}
-    ${datalistField('Exporter / Seller Name','o_exp','o_exp_dl',S.masters.exporters,false,r.exporter||'')}
-    <div class="fgrp"><label>Contract Number (auto)</label><input id="o_cno" value="${suggestedNo}" style="font-family:var(--mono)"></div>
+  const body=`<div class="fg">
+    ${sec('Contract Details')}
+    ${dlf('Exporter / Seller Name','o_exp','o_exp_dl',S.masters.exporters,false,r.exporter||'')}
+    <div class="fgrp"><label>Contract Number (auto-generated)</label><input id="o_cno" value="${r.contract_no||''}" style="font-family:var(--mono);color:var(--blue)"></div>
     <div class="fgrp"><label>Contract Date</label><input type="date" id="o_date" value="${r.contract_date||today()}"></div>
-    <div class="fgrp"><label>Signed Contract?</label><select id="o_signed">${sel(['No','Yes','Pending'],r.signed_contract||'No')}</select></div>
-    ${secHdr('Buyer Details')}
-    ${datalistField('Buyer Name','o_buyer','o_buyer_dl',S.masters.buyers,false,r.buyer||'')}
+    <div class="fgrp"><label>Signed Contract Received?</label><select id="o_signed">${sel(['No','Yes','Pending'],r.signed_contract||'No')}</select></div>
+    ${sec('Buyer Details')}
+    ${dlf('Buyer Name','o_buyer','o_buyer_dl',S.masters.buyers,false,r.buyer||'')}
     <div class="fgrp"><label>Buyer Port</label><input id="o_bport" value="${r.buyer_port||''}"></div>
-    ${secHdr('Product & Pricing')}
-    ${datalistField('Product','o_prod','o_prod_dl',S.masters.products,false,r.product||'')}
+    ${sec('Product & Pricing')}
+    ${dlf('Product','o_prod','o_prod_dl',S.masters.products,false,r.product||'')}
     <div class="fgrp"><label>Quantity (MT)</label><input type="number" id="o_qty" value="${r.qty||''}"></div>
     <div class="fgrp"><label>Currency</label><select id="o_cur">${sel(currencies,r.currency||'USD')}</select></div>
     <div class="fgrp"><label>Unit Price</label><input type="number" id="o_price" value="${r.unit_price||''}"></div>
     <div class="fgrp"><label>Payment Terms</label><input id="o_pterm" value="${r.payment_terms||''}"></div>
     <div class="fgrp"><label>Delivery Terms</label><input id="o_dterm" value="${r.delivery_terms||''}"></div>
-    ${secHdr('Packing')}
+    ${sec('Packing')}
     <div class="fgrp"><label>Bag Marking</label><input id="o_bmark" value="${r.bag_marking||''}"></div>
     <div class="fgrp"><label>Bag Type</label><select id="o_btype">${sel(bagTypes,r.bag_type||'PP Bag')}</select></div>
     <div class="fgrp full"><label>Remarks</label><textarea id="o_rem">${r.remarks||''}</textarea></div>
   </div>`;
-  openModal(mw(id?'Edit Contract':'New Contract',f,id?`saveOrder('${id}')`:'saveOrder()'));
-  // auto-generate contract no when exporter changes
+  openModal(mw(id?'Edit Contract':'New Contract',body,id?`saveOrder('${id}')`:'saveOrder()'));
   setTimeout(()=>{
     const expEl=document.getElementById('o_exp');
     const cnoEl=document.getElementById('o_cno');
@@ -441,76 +643,70 @@ function openOrderModal(id){
       expEl.addEventListener('input',()=>{
         const v=expEl.value.trim();
         if(v){
-          const words=v.split(/\s+/);
-          const prefix=words.map(w=>w[0]).join('').toUpperCase().slice(0,4);
-          const fy_str=fy();
-          const existing=S.records.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(prefix+'/'));
-          cnoEl.value=`${prefix}/${fy_str}/${String(existing.length+1).padStart(3,'0')}`;
+          const pfx=v.split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,4);
+          const ex=S.recs.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(pfx+'/'));
+          cnoEl.value=`${pfx}/${fy()}/${String(ex.length+1).padStart(3,'0')}`;
         }
       });
     }
-  },100);
+  },80);
 }
 async function saveOrder(id){
   const data={contract_date:fv('o_date')||null,exporter:fv('o_exp'),contract_no:fv('o_cno'),buyer:fv('o_buyer'),buyer_port:fv('o_bport'),product:fv('o_prod'),qty:fv('o_qty')||null,currency:fv('o_cur'),unit_price:fv('o_price')||null,payment_terms:fv('o_pterm'),delivery_terms:fv('o_dterm'),bag_marking:fv('o_bmark'),bag_type:fv('o_btype'),signed_contract:fv('o_signed'),remarks:fv('o_rem')};
-  if(!id)data.id='ORD-'+Date.now().toString(36).toUpperCase();
+  if(!id)data.id=uid('ORD');
   await saveRec('orders',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// B. RAW MATERIAL PURCHASES
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// B. RAW MATERIAL PURCHASES — with contract query window
+// ═══════════════════════════════════════════════════════════
 function renderPurchases(){
-  const rows=(S.records.purchases||[]).filter(o=>!S.search||o.vendor?.toLowerCase().includes(S.search.toLowerCase())||o.commodity?.toLowerCase().includes(S.search.toLowerCase()));
+  const rows=(S.recs.purchases||[]).filter(o=>!S.search||[o.vendor,o.commodity,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search vendor, commodity…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderPurchases()"><button class="pri" onclick="openPurchaseModal()">+ New Purchase</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Vendor','Commodity','Qty (MT)','Pending Qty','Price (INR/MT)','Price Type','Broker','Bag Marking','Payment Terms','Contract','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${r.id}</span></td>
+  `<div class="card">`+tbl(rows,['ID','Date','Vendor','Commodity','Qty (MT)','Pending Qty','Price (INR)','Price Type','Broker','Bag Marking','Payment Terms','Linked Contract','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
     <td>${r.purchase_date||'—'}</td>
-    <td><strong>${r.vendor||'—'}</strong></td>
-    <td>${r.commodity||'—'}</td>
-    <td style="font-family:var(--mono)">${fmtN(r.qty)}</td>
-    <td style="font-family:var(--mono)" class="${Number(r.pending_qty)>0?'dok':'dbad'}">${fmtN(r.pending_qty||r.qty)}</td>
-    <td style="font-family:var(--mono)">₹${fmt(r.price_inr)}</td>
-    <td>${r.price_type||'—'}</td>
-    <td>${r.broker||'—'}</td>
-    <td>${r.bag_marking||'—'}</td>
+    <td><strong>${r.vendor||'—'}</strong></td><td>${r.commodity||'—'}</td>
+    <td class="mono">${fmtN(r.qty)}</td>
+    <td class="mono ${Number(r.pending_qty)>0?'dok':'dbad'}">${fmtN(r.pending_qty||r.qty)}</td>
+    <td class="mono">₹${fmt(r.price_inr)}</td>
+    <td>${r.price_type||'—'}</td><td>${r.broker||'—'}</td><td>${r.bag_marking||'—'}</td>
     <td>${r.payment_terms||'—'}</td>
-    <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.linked_contract_no||'—'}</span></td>
+    <td><span class="mono" style="color:var(--blue)">${r.linked_contract_no||'—'}</span></td>
     <td><div class="acell"><button class="sm" onclick="openPurchaseModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('purchases','${r.id}')">Del</button></div></td>
   </tr>`,'Click + New Purchase to begin.')+`</div>`;
 }
-
-let _selPurchaseContract='';
-function selectPurchaseContract(id){
-  _selPurchaseContract=id;
-  const c=S.records.orders.find(o=>o.id===id);
+let _pSelContract=null;
+function selPurchaseContract(id){
+  _pSelContract=id;
+  const c=S.recs.orders.find(o=>o.id===id);
   if(c){
     const cn=document.getElementById('p_contract');
     const prod=document.getElementById('p_comm');
     const bmark=document.getElementById('p_bmark');
-    if(cn)cn.value=c.contract_no||'';
+    if(cn){cn.value=c.contract_no||'';cn.className='fgrp auto-filled';}
     if(prod&&!prod.value)prod.value=c.product||'';
     if(bmark&&!bmark.value)bmark.value=c.bag_marking||'';
   }
-  document.querySelectorAll('.preview-card').forEach(el=>el.classList.remove('selected'));
-  document.querySelectorAll('.preview-card').forEach(el=>{if(el.onclick.toString().includes(id))el.classList.add('selected');});
-  renderAll();openPurchaseModal(null,id);
+  S.qSearch.contract='';
+  openPurchaseModal(S._editingPurchaseId);
 }
-function openPurchaseModal(id,preselContract){
-  const r=id?(S.records.purchases||[]).find(o=>o.id===id):{};
-  const priceTypes=['Ex-Factory','Delivered — Buyer Location','Delivered — Port/CFS','Delivered — Other'];
-  const f=`
-    <div style="margin-bottom:14px">
-      <div class="modal-section">Select Linked Contract (Pending)</div>
-      <div style="max-height:180px;overflow-y:auto;margin-bottom:4px">${pendingContractCards(r.linked_contract_id||preselContract||'','selectPurchaseContractInModal')}</div>
-      <div class="fgrp" style="margin-top:8px"><label>Contract No. (auto-filled)</label><input id="p_contract" value="${r.linked_contract_no||''}" readonly style="color:var(--accent);font-family:var(--mono)"></div>
-    </div>
+function openPurchaseModal(id){
+  S._editingPurchaseId=id||null;
+  const r=id?(S.recs.purchases||[]).find(o=>o.id===id):{};
+  if(!id&&_pSelContract===undefined)_pSelContract=null;
+  const selId=_pSelContract||(id?r.linked_contract_id:null);
+  const priceTypes=['Ex-Factory','Delivered — Buyer Location','Delivered — Port / CFS','Delivered — Other Location'];
+  const body=`
+    ${contractQueryWindow(selId,'selPurchaseContract')}
     <div class="fg">
-      ${secHdr('Purchase Details')}
+      ${sec('Purchase Details')}
+      <div class="fgrp"><label>Contract No. (auto-filled on selection)</label><input id="p_contract" value="${r.linked_contract_no||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Purchase Date</label><input type="date" id="p_date" value="${r.purchase_date||today()}"></div>
       <div class="fgrp"><label>Vendor Name</label><input id="p_vendor" value="${r.vendor||''}"></div>
-      ${datalistField('Commodity','p_comm','p_comm_dl',S.masters.products,false,r.commodity||'')}
+      ${dlf('Commodity','p_comm','p_comm_dl',S.masters.products,false,r.commodity||'')}
       <div class="fgrp"><label>Quantity (MT)</label><input type="number" id="p_qty" value="${r.qty||''}"></div>
+      <div class="fgrp"><label>Pending Qty (MT)</label><input type="number" id="p_pqty" value="${r.pending_qty!==undefined?r.pending_qty:r.qty||''}"></div>
       <div class="fgrp"><label>Price (INR / MT)</label><input type="number" id="p_price" value="${r.price_inr||''}"></div>
       <div class="fgrp"><label>Price Type</label><select id="p_ptype">${sel(priceTypes,r.price_type||'Ex-Factory')}</select></div>
       <div class="fgrp"><label>Delivery Location (if delivered)</label><input id="p_dloc" value="${r.delivery_location||''}"></div>
@@ -518,80 +714,61 @@ function openPurchaseModal(id,preselContract){
       <div class="fgrp"><label>Bag Marking</label><input id="p_bmark" value="${r.bag_marking||''}"></div>
       <div class="fgrp"><label>Quality Grade</label><input id="p_grade" value="${r.quality_grade||''}"></div>
       <div class="fgrp"><label>Payment Terms</label><input id="p_pterm" value="${r.payment_terms||''}"></div>
-      <div class="fgrp"><label>Pending Qty (MT)</label><input type="number" id="p_pqty" value="${r.pending_qty!==undefined?r.pending_qty:r.qty||''}"></div>
       <div class="fgrp full"><label>Remarks</label><textarea id="p_rem">${r.remarks||''}</textarea></div>
     </div>`;
-  openModal(mw(id?'Edit Purchase':'New Purchase',f,id?`savePurchase('${id}')`:'savePurchase()'));
-}
-function selectPurchaseContractInModal(id){
-  const c=S.records.orders.find(o=>o.id===id);
-  if(c){
-    const cn=document.getElementById('p_contract');
-    if(cn)cn.value=c.contract_no||'';
-    const prod=document.getElementById('p_comm');
-    if(prod&&!prod.value)prod.value=c.product||'';
-    const bmark=document.getElementById('p_bmark');
-    if(bmark&&!bmark.value)bmark.value=c.bag_marking||'';
-    document.querySelectorAll('.preview-card').forEach(el=>{
-      el.classList.remove('selected');
-      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id))el.classList.add('selected');
-    });
-  }
-  _selPurchaseContract=id;
+  openModal(mw(id?'Edit Purchase':'New Purchase',body,id?`savePurchase('${id}')`:'savePurchase()',true));
 }
 async function savePurchase(id){
   const qty=parseFloat(fv('p_qty'))||null;
   const pqty=fv('p_pqty')!==''?parseFloat(fv('p_pqty')):(qty||null);
-  const data={purchase_date:fv('p_date')||null,vendor:fv('p_vendor'),commodity:fv('p_comm'),qty,price_inr:fv('p_price')||null,price_type:fv('p_ptype'),delivery_location:fv('p_dloc'),broker:fv('p_broker'),bag_marking:fv('p_bmark'),quality_grade:fv('p_grade'),payment_terms:fv('p_pterm'),pending_qty:pqty,linked_contract_no:fv('p_contract'),linked_contract_id:_selPurchaseContract||null,remarks:fv('p_rem')};
-  if(!id)data.id='PUR-'+Date.now().toString(36).toUpperCase();
+  const data={purchase_date:fv('p_date')||null,vendor:fv('p_vendor'),commodity:fv('p_comm'),qty,pending_qty:pqty,price_inr:fv('p_price')||null,price_type:fv('p_ptype'),delivery_location:fv('p_dloc'),broker:fv('p_broker'),bag_marking:fv('p_bmark'),quality_grade:fv('p_grade'),payment_terms:fv('p_pterm'),linked_contract_no:fv('p_contract'),linked_contract_id:_pSelContract||null,remarks:fv('p_rem')};
+  if(!id)data.id=uid('PUR');
+  _pSelContract=null;
   await saveRec('purchases',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// C. CONTAINER BOOKINGS
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// C. CONTAINER BOOKINGS — with contract query window
+// ═══════════════════════════════════════════════════════════
 function renderContainers(){
-  const rows=(S.records.containers||[]).filter(o=>!S.search||o.booking_ref?.toLowerCase().includes(S.search.toLowerCase())||o.shipping_line?.toLowerCase().includes(S.search.toLowerCase()));
+  const rows=(S.recs.containers||[]).filter(o=>!S.search||[o.booking_ref,o.shipping_line,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search booking ref, line…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderContainers()"><button class="pri" onclick="openContainerModal()">+ New Booking</button></div>`+
-  `<div class="card">`+tbl(rows,['Booking ID','Date','Shipping Line','Forwarder','Type','Qty','Booking Ref','Contract','ETD','POL','POD','Freight Rate','Total','Status','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${r.id}</span></td>
+  `<div class="card">`+tbl(rows,['Booking ID','Date','Shipping Line','Forwarder','Type','Qty','Booking Ref','Linked Contract','ETD','POL','POD','Rate','Total Freight','Status','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
     <td>${r.booking_date||'—'}</td>
-    <td>${r.shipping_line||'—'}</td>
-    <td>${r.forwarder||'—'}</td>
+    <td>${r.shipping_line||'—'}</td><td>${r.forwarder||'—'}</td>
     <td>${r.container_type||'—'}</td>
-    <td style="font-family:var(--mono)">${r.num_containers||'—'}</td>
-    <td style="font-family:var(--mono);color:var(--accent)">${r.booking_ref||'—'}</td>
-    <td style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.linked_contract_no||'—'}</td>
+    <td class="mono">${r.num_containers||'—'}</td>
+    <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
+    <td class="mono" style="color:var(--green)">${r.linked_contract_no||'—'}</td>
     <td>${r.etd||'—'}</td><td>${r.pol||'—'}</td><td>${r.pod||'—'}</td>
-    <td style="font-family:var(--mono)">$${fmt(r.freight_rate)}</td>
-    <td style="font-family:var(--mono)">$${fmt((r.num_containers||0)*(r.freight_rate||0))}</td>
+    <td class="mono">$${fmt(r.freight_rate)}</td>
+    <td class="mono">$${fmt((r.num_containers||0)*(r.freight_rate||0))}</td>
     <td>${bdg(r.status||'Booked')}</td>
     <td><div class="acell"><button class="sm" onclick="openContainerModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('containers','${r.id}')">Del</button></div></td>
   </tr>`,'No container bookings yet.')+`</div>`;
 }
-let _selBookingContract='';
-function selectBookingContract(id){
-  _selBookingContract=id;
-  const c=S.records.orders.find(o=>o.id===id);
+let _cSelContract=null;
+function selBookingContract(id){
+  _cSelContract=id;
+  const c=S.recs.orders.find(o=>o.id===id);
   if(c){
     const cn=document.getElementById('c_contract');
-    if(cn)cn.value=c.contract_no||'';
-    document.querySelectorAll('.preview-card').forEach(el=>{
-      el.classList.remove('selected');
-      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id))el.classList.add('selected');
-    });
+    if(cn){cn.value=c.contract_no||'';cn.className='auto-filled';}
   }
+  S.qSearch.contract='';
+  openContainerModal(S._editingContainerId);
 }
 function openContainerModal(id){
-  const r=id?(S.records.containers||[]).find(o=>o.id===id):{};
-  const f=`
-    <div style="margin-bottom:14px">
-      <div class="modal-section">Select Linked Contract (Confirmed)</div>
-      <div style="max-height:160px;overflow-y:auto">${pendingContractCards(r.linked_contract_id||'','selectBookingContract')}</div>
-      <div class="fgrp" style="margin-top:8px"><label>Contract No. (auto-filled)</label><input id="c_contract" value="${r.linked_contract_no||''}" readonly style="color:var(--accent);font-family:var(--mono)"></div>
-    </div>
+  S._editingContainerId=id||null;
+  const r=id?(S.recs.containers||[]).find(o=>o.id===id):{};
+  if(!id&&_cSelContract===undefined)_cSelContract=null;
+  const selId=_cSelContract||(id?r.linked_contract_id:null);
+  const body=`
+    ${contractQueryWindow(selId,'selBookingContract')}
     <div class="fg">
-      ${secHdr('Booking Details')}
+      ${sec('Booking Details')}
+      <div class="fgrp"><label>Linked Contract No. (auto-filled)</label><input id="c_contract" value="${r.linked_contract_no||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Booking Date</label><input type="date" id="c_date" value="${r.booking_date||today()}"></div>
       <div class="fgrp"><label>Shipping Line</label><input id="c_line" value="${r.shipping_line||''}"></div>
       <div class="fgrp"><label>Forwarder Name</label><input id="c_fwd" value="${r.forwarder||''}"></div>
@@ -606,261 +783,186 @@ function openContainerModal(id){
       <div class="fgrp"><label>Freight Rate / Container (USD)</label><input type="number" id="c_rate" value="${r.freight_rate||''}"></div>
       <div class="fgrp"><label>Status</label><select id="c_status">${sel(['Booked','Confirmed','Loaded','Sailed','Completed'],r.status||'Booked')}</select></div>
     </div>`;
-  openModal(mw(id?'Edit Booking':'New Container Booking',f,id?`saveContainer('${id}')`:'saveContainer()'));
+  openModal(mw(id?'Edit Booking':'New Container Booking',body,id?`saveContainer('${id}')`:'saveContainer()',true));
 }
 async function saveContainer(id){
-  const data={booking_date:fv('c_date')||null,shipping_line:fv('c_line'),forwarder:fv('c_fwd'),vessel:fv('c_vessel'),container_type:fv('c_type'),num_containers:parseInt(fv('c_num'))||1,booking_ref:fv('c_ref')||null,linked_contract_no:fv('c_contract')||null,linked_contract_id:_selBookingContract||null,etd:fv('c_etd')||null,eta:fv('c_eta')||null,pol:fv('c_pol'),pod:fv('c_pod'),freight_rate:fv('c_rate')||null,status:fv('c_status')};
-  if(!id)data.id='BKG-'+Date.now().toString(36).toUpperCase();
+  const data={booking_date:fv('c_date')||null,shipping_line:fv('c_line'),forwarder:fv('c_fwd'),vessel:fv('c_vessel'),container_type:fv('c_type'),num_containers:parseInt(fv('c_num'))||1,booking_ref:fv('c_ref')||null,linked_contract_no:fv('c_contract')||null,linked_contract_id:_cSelContract||null,etd:fv('c_etd')||null,eta:fv('c_eta')||null,pol:fv('c_pol'),pod:fv('c_pod'),freight_rate:fv('c_rate')||null,status:fv('c_status')};
+  if(!id)data.id=uid('BKG');
+  _cSelContract=null;
   await saveRec('containers',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// D. TRANSPORTERS & PLOT
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// D. TRANSPORTERS & PLOT — with booking query window
+// ═══════════════════════════════════════════════════════════
 function renderTransporters(){
-  const rows=(S.records.transporters||[]).filter(o=>!S.search||o.transporter?.toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search transporter…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderTransporters()"><button class="pri" onclick="openTransporterModal()">+ Assign Transporter</button></div>`+
-  `<div class="card">`+tbl(rows,['Assignment ID','Date','Transporter','Vehicle No.','Booking Ref','Order ID','Containers','Rate','Total','Plot Name','Plot Charges','Paid By','Plot Pay Date','Status','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--purple)">${r.assignment_id||r.id}</span></td>
+  const rows=(S.recs.transporters||[]).filter(o=>!S.search||[o.transporter,o.booking_ref,o.assignment_id].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search transporter, booking ref…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderTransporters()"><button class="pri" onclick="openTransporterModal()">+ Assign Transporter</button></div>`+
+  `<div class="card">`+tbl(rows,['Assignment ID','Date','Transporter','Vehicle No.','Booking Ref','Contract Ref','Containers','Rate','Total','Plot Name','Plot Charges','Paid By','Plot Pay Date','Status','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--purple)">${r.assignment_id||r.id}</span></td>
     <td>${r.transport_date||'—'}</td>
-    <td><strong>${r.transporter||'—'}</strong></td>
-    <td>${r.vehicle_no||'—'}</td>
-    <td style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.booking_ref||'—'}</td>
-    <td>${r.order_id||'—'}</td>
-    <td style="text-align:center">${r.num_containers||'—'}</td>
-    <td style="font-family:var(--mono)">₹${fmt(r.rate_per_container)}</td>
-    <td style="font-family:var(--mono)">₹${fmt((r.num_containers||0)*(r.rate_per_container||0))}</td>
+    <td><strong>${r.transporter||'—'}</strong></td><td>${r.vehicle_no||'—'}</td>
+    <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
+    <td class="mono" style="color:var(--green)">${r.order_id||'—'}</td>
+    <td class="mono">${r.num_containers||'—'}</td>
+    <td class="mono">₹${fmt(r.rate_per_container)}</td>
+    <td class="mono">₹${fmt((r.num_containers||0)*(r.rate_per_container||0))}</td>
     <td>${r.plot_name||'—'}</td>
-    <td style="font-family:var(--mono)">₹${fmt(r.plot_charges)}</td>
-    <td>${r.plot_paid_by||'—'}</td>
-    <td>${r.plot_payment_date||'—'}</td>
+    <td class="mono">₹${fmt(r.plot_charges)}</td>
+    <td>${r.plot_paid_by||'—'}</td><td>${r.plot_payment_date||'—'}</td>
     <td>${bdg(r.status||'Assigned')}</td>
     <td><div class="acell"><button class="sm" onclick="openTransporterModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('transporters','${r.id}')">Del</button></div></td>
   </tr>`,'No transporters assigned yet.')+`</div>`;
 }
-let _selTransBooking='';
-function selectTransBooking(id){
-  _selTransBooking=id;
-  const c=S.records.containers.find(o=>o.id===id);
+let _tSelBooking=null;
+function selTransBooking(id){
+  _tSelBooking=id;
+  const c=S.recs.containers.find(o=>o.id===id);
   if(c){
     const br=document.getElementById('t_booking');
-    const oid=document.getElementById('t_order');
-    if(br)br.value=c.booking_ref||'';
-    if(oid)oid.value=c.linked_contract_no||'';
+    const or=document.getElementById('t_order');
     const nc=document.getElementById('t_num');
+    if(br){br.value=c.booking_ref||'';br.className='auto-filled';}
+    if(or){or.value=c.linked_contract_no||'';or.className='auto-filled';}
     if(nc&&!nc.value)nc.value=c.num_containers||1;
-    document.querySelectorAll('.preview-card').forEach(el=>{
-      el.classList.remove('selected');
-      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id))el.classList.add('selected');
-    });
   }
+  S.qSearch.booking='';
+  openTransporterModal(S._editingTransId);
 }
 function openTransporterModal(id){
-  const r=id?(S.records.transporters||[]).find(o=>o.id===id):{};
-  const assignId=id?r.assignment_id:'LA-'+Date.now().toString(36).toUpperCase().slice(-6);
-  const f=`
-    <div style="margin-bottom:14px">
-      <div class="modal-section">Select Pending Booking</div>
-      <div style="max-height:160px;overflow-y:auto">${pendingBookingCards(r.booking_id||'','selectTransBooking')}</div>
-      <div class="fg" style="margin-top:8px">
-        <div class="fgrp"><label>Booking Ref (auto-filled)</label><input id="t_booking" value="${r.booking_ref||''}" readonly style="color:var(--accent);font-family:var(--mono)"></div>
-        <div class="fgrp"><label>Order / Contract Ref</label><input id="t_order" value="${r.order_id||''}" readonly style="font-family:var(--mono)"></div>
-      </div>
-    </div>
+  S._editingTransId=id||null;
+  const r=id?(S.recs.transporters||[]).find(o=>o.id===id):{};
+  if(!id&&_tSelBooking===undefined)_tSelBooking=null;
+  const selId=_tSelBooking||(id?r.booking_id:null);
+  const assignId=id?r.assignment_id:uid('LA');
+  const body=`
+    ${bookingQueryWindow(selId,'selTransBooking')}
     <div class="fg">
-      ${secHdr('Transporter Details')}
+      ${sec('Transporter Details')}
+      <div class="fgrp"><label>Booking Ref (auto-filled)</label><input id="t_booking" value="${r.booking_ref||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract Ref (auto-filled)</label><input id="t_order" value="${r.order_id||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Loading Assignment ID (auto)</label><input id="t_assign" value="${assignId}" style="font-family:var(--mono);color:var(--purple)"></div>
       <div class="fgrp"><label>Date</label><input type="date" id="t_date" value="${r.transport_date||today()}"></div>
-      ${datalistField('Transporter Name','t_name','t_name_dl',S.masters.transporterNames,false,r.transporter||'')}
+      ${dlf('Transporter Name','t_name','t_name_dl',S.masters.transporters,false,r.transporter||'')}
       <div class="fgrp"><label>Vehicle / Truck No.</label><input id="t_vehicle" value="${r.vehicle_no||''}"></div>
       <div class="fgrp"><label>No. of Containers</label><input type="number" id="t_num" value="${r.num_containers||1}"></div>
       <div class="fgrp"><label>Route (From → To)</label><input id="t_route" value="${r.route||''}"></div>
       <div class="fgrp"><label>Rate Per Container (INR)</label><input type="number" id="t_rate" value="${r.rate_per_container||''}"></div>
-      ${secHdr('Plot Charges')}
-      <div class="fgrp"><label>Plot Name</label><input id="t_plotname" value="${r.plot_name||''}"></div>
+      ${sec('Plot Charges')}
+      <div class="fgrp"><label>Plot Name / Yard</label><input id="t_plotname" value="${r.plot_name||''}"></div>
       <div class="fgrp"><label>Plot Charges (INR)</label><input type="number" id="t_plot" value="${r.plot_charges||0}"></div>
       <div class="fgrp"><label>Plot Paid By</label><select id="t_plotby">${sel(['Direct by Us','By Transporter','Shared'],r.plot_paid_by||'Direct by Us')}</select></div>
       <div class="fgrp"><label>Plot Payment Date</label><input type="date" id="t_plotdate" value="${r.plot_payment_date||''}"></div>
       <div class="fgrp"><label>Status</label><select id="t_status">${sel(['Assigned','In Transit','Delivered','Completed'],r.status||'Assigned')}</select></div>
     </div>`;
-  openModal(mw(id?'Edit Transporter':'Assign Transporter',f,id?`saveTransporter('${id}')`:'saveTransporter()'));
+  openModal(mw(id?'Edit Transporter':'Assign Transporter',body,id?`saveTransporter('${id}')`:'saveTransporter()',true));
 }
 async function saveTransporter(id){
-  const data={assignment_id:fv('t_assign'),transport_date:fv('t_date')||null,transporter:fv('t_name'),vehicle_no:fv('t_vehicle'),booking_ref:fv('t_booking')||null,booking_id:_selTransBooking||null,order_id:fv('t_order')||null,num_containers:parseInt(fv('t_num'))||1,route:fv('t_route'),rate_per_container:fv('t_rate')||null,plot_name:fv('t_plotname'),plot_charges:fv('t_plot')||0,plot_paid_by:fv('t_plotby'),plot_payment_date:fv('t_plotdate')||null,status:fv('t_status')};
-  if(!id)data.id='TRN-'+Date.now().toString(36).toUpperCase();
+  const data={assignment_id:fv('t_assign'),transport_date:fv('t_date')||null,transporter:fv('t_name'),vehicle_no:fv('t_vehicle'),booking_ref:fv('t_booking')||null,booking_id:_tSelBooking||null,order_id:fv('t_order')||null,num_containers:parseInt(fv('t_num'))||1,route:fv('t_route'),rate_per_container:fv('t_rate')||null,plot_name:fv('t_plotname'),plot_charges:fv('t_plot')||0,plot_paid_by:fv('t_plotby'),plot_payment_date:fv('t_plotdate')||null,status:fv('t_status')};
+  if(!id)data.id=uid('TRN');
+  _tSelBooking=null;
   await saveRec('transporters',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// E. LOADING ASSIGNMENT
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// E. LOADING ASSIGNMENT — assignment query window + flexible groups
+// ═══════════════════════════════════════════════════════════
 function renderLoading(){
-  const rows=(S.records.loading||[]).filter(o=>!S.search||o.assignment_id?.toLowerCase().includes(S.search.toLowerCase())||o.vendor_group1?.toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search assignment ID, vendor…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderLoading()"><button class="pri" onclick="openLoadingModal()">+ New Loading Assignment</button></div>`+
-  `<div class="card">`+tbl(rows,['Assignment ID','Date','Booking Ref','Status','Grp1 Container','Grp1 Vehicle','Grp1 Qty (MT)','Grp1 Vendor','Grp1 Surveyor','Grp2 Container','Grp2 Vehicle','Grp2 Qty (MT)','Grp2 Vendor','Grp2 Surveyor','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--purple)">${r.assignment_id||r.id}</span></td>
-    <td>${r.loading_date||'—'}</td>
-    <td style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.booking_ref||'—'}</td>
-    <td>${bdg(r.status||'Scheduled')}</td>
-    <td>${r.container_no_g1||'—'}</td><td>${r.vehicle_no_g1||'—'}</td>
-    <td style="font-family:var(--mono)">${fmtN(r.loading_qty_g1)}</td>
-    <td>${r.vendor_group1||'—'}</td><td>${r.surveyor_g1||'—'}</td>
-    <td>${r.container_no_g2||'—'}</td><td>${r.vehicle_no_g2||'—'}</td>
-    <td style="font-family:var(--mono)">${fmtN(r.loading_qty_g2)}</td>
-    <td>${r.vendor_group2||'—'}</td><td>${r.surveyor_g2||'—'}</td>
-    <td><div class="acell"><button class="sm" onclick="openLoadingModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('loading','${r.id}')">Del</button></div></td>
-  </tr>`,'No loading assignments yet.')+`</div>`;
+  const rows=(S.recs.loading||[]).filter(o=>!S.search||[o.assignment_id,o.booking_ref].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search assignment ID, booking ref…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderLoading()"><button class="pri" onclick="openLoadingModal()">+ New Loading Assignment</button></div>`+
+  `<div class="card">`+tbl(rows,['Assignment ID','Date','Booking Ref','Status','Groups','Total Containers','Total Qty (MT)','Actions'],r=>{
+    let grps=[];try{grps=JSON.parse(r.groups||'[]');}catch(e){}
+    const totalCon=grps.reduce((s,g)=>s+g.rows.length,0);
+    const totalQty=grps.reduce((s,g)=>s+g.rows.reduce((ss,rr)=>ss+(Number(rr.qty)||0),0),0);
+    return`<tr>
+      <td><span class="mono" style="color:var(--purple)">${r.assignment_id||r.id}</span></td>
+      <td>${r.loading_date||'—'}</td>
+      <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
+      <td>${bdg(r.status||'Scheduled')}</td>
+      <td class="mono">${grps.length}</td>
+      <td class="mono">${totalCon}</td>
+      <td class="mono">${fmtN(totalQty)}</td>
+      <td><div class="acell"><button class="sm" onclick="openLoadingModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('loading','${r.id}')">Del</button></div></td>
+    </tr>`;
+  },'No loading assignments yet.')+`</div>`;
 }
-let _selLoadPurchase1='',_selLoadPurchase2='';
-function selectLoadPurchase1(id){
-  _selLoadPurchase1=id;
-  const p=S.records.purchases.find(x=>x.id===id);
-  if(p){
-    const v=document.getElementById('l_vendor1');
-    const b=document.getElementById('l_bmark1');
-    if(v)v.value=p.vendor||'';
-    if(b)b.value=p.bag_marking||'';
-    document.querySelectorAll('#grp1-cards .preview-card').forEach(el=>{
-      el.classList.remove('selected');
-      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id))el.classList.add('selected');
-    });
-  }
-}
-function selectLoadPurchase2(id){
-  _selLoadPurchase2=id;
-  const p=S.records.purchases.find(x=>x.id===id);
-  if(p){
-    const v=document.getElementById('l_vendor2');
-    const b=document.getElementById('l_bmark2');
-    if(v)v.value=p.vendor||'';
-    if(b)b.value=p.bag_marking||'';
-    document.querySelectorAll('#grp2-cards .preview-card').forEach(el=>{
-      el.classList.remove('selected');
-      if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes(id))el.classList.add('selected');
-    });
-  }
+let _lSelAssignment=null,_lSelBookingRef='';
+function selAssignment(aid,bref,orderRef,numCon){
+  _lSelAssignment=aid;_lSelBookingRef=bref||'';
+  S.qSearch.assignment='';
+  openLoadingModal(S._editingLoadId);
 }
 function openLoadingModal(id){
-  const r=id?(S.records.loading||[]).find(o=>o.id===id):{};
-  // pending assignment IDs from transporters
-  const pendingAssignments=S.records.transporters.filter(t=>t.status==='Assigned'||t.status==='In Transit');
-  const f=`
-    <div style="margin-bottom:14px">
-      <div class="modal-section">Select Loading Assignment ID (from Transporter)</div>
-      <div style="max-height:140px;overflow-y:auto">
-        ${pendingAssignments.length?pendingAssignments.map(t=>`
-          <div class="preview-card${r.assignment_id===t.assignment_id?' selected':''}" onclick="fillAssignmentId('${t.assignment_id}','${t.booking_ref||''}')">
-            <div class="preview-card-title">${t.assignment_id||t.id} — ${t.transporter||'—'}</div>
-            <div class="preview-card-meta">
-              <span>🚢 ${t.booking_ref||'—'}</span>
-              <span>🚛 ${t.vehicle_no||'—'}</span>
-              <span>📦 ${t.num_containers||'?'} containers</span>
-            </div>
-          </div>`).join(''):'<div style="color:var(--text3);font-size:12px;padding:8px">No pending assignments. Create one in Transporters first.</div>'}
-      </div>
-      <div class="fg" style="margin-top:8px">
-        <div class="fgrp"><label>Assignment ID</label><input id="l_aid" value="${r.assignment_id||''}" style="font-family:var(--mono);color:var(--purple)"></div>
-        <div class="fgrp"><label>Booking Ref</label><input id="l_bref" value="${r.booking_ref||''}" style="font-family:var(--mono);color:var(--accent)" readonly></div>
-      </div>
-    </div>
+  S._editingLoadId=id||null;
+  const r=id?(S.recs.loading||[]).find(o=>o.id===id):{};
+  if(id){
+    try{S.groups=JSON.parse(r.groups||'[]');}catch(e){S.groups=[];}
+  } else if(!S.groups){S.groups=[];}
+  const selAid=_lSelAssignment||(id?r.assignment_id:null);
+  const body=`
+    ${assignmentQueryWindow(selAid,'selAssignment')}
     <div class="fg">
+      <div class="fgrp"><label>Assignment ID (auto-filled)</label><input id="l_aid" value="${r.assignment_id||_lSelAssignment||''}" style="font-family:var(--mono);color:var(--purple)"></div>
+      <div class="fgrp"><label>Booking Ref (auto-filled)</label><input id="l_bref" value="${r.booking_ref||_lSelBookingRef||''}" class="auto-filled" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Loading Date</label><input type="date" id="l_date" value="${r.loading_date||today()}"></div>
       <div class="fgrp"><label>Status</label><select id="l_status">${sel(['Scheduled','In Progress','Completed'],r.status||'Scheduled')}</select></div>
     </div>
-
-    <div class="group-section" style="margin-top:14px">
-      <div class="group-title">Group 1 — Vendor & Container Details
-        <span style="font-size:10px;color:var(--text3);font-weight:400">Select vendor purchase to auto-fill</span>
-      </div>
-      <div id="grp1-cards" style="max-height:120px;overflow-y:auto;margin-bottom:10px">${pendingPurchaseCards(r.purchase_id_g1||'','selectLoadPurchase1')}</div>
-      <div class="fg">
-        <div class="fgrp"><label>Container No.</label><input id="l_cno1" value="${r.container_no_g1||''}"></div>
-        <div class="fgrp"><label>Vehicle No.</label><input id="l_vno1" value="${r.vehicle_no_g1||''}"></div>
-        <div class="fgrp"><label>Loading Qty (MT)</label><input type="number" id="l_qty1" value="${r.loading_qty_g1||''}"></div>
-        <div class="fgrp"><label>From (Location)</label><input id="l_from1" value="${r.from_location_g1||''}"></div>
-        <div class="fgrp"><label>To (Location)</label><input id="l_to1" value="${r.to_location_g1||''}"></div>
-        <div class="fgrp"><label>Vendor (auto)</label><input id="l_vendor1" value="${r.vendor_group1||''}" style="color:var(--green)"></div>
-        <div class="fgrp"><label>Bag Marking (auto)</label><input id="l_bmark1" value="${r.bag_marking_g1||''}" style="color:var(--green)"></div>
-        <div class="fgrp"><label>Surveyor</label><input id="l_surv1" value="${r.surveyor_g1||''}"></div>
-        <div class="fgrp"><label>Rate (INR/MT)</label><input type="number" id="l_rate1" value="${r.rate_g1||''}"></div>
-      </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em">Container Groups</div>
+      <button class="success sm" onclick="addGroup()">＋ Add Group</button>
     </div>
-
-    <div class="group-section">
-      <div class="group-title">Group 2 — Vendor & Container Details
-        <span style="font-size:10px;color:var(--text3);font-weight:400">Select vendor purchase to auto-fill</span>
-      </div>
-      <div id="grp2-cards" style="max-height:120px;overflow-y:auto;margin-bottom:10px">${pendingPurchaseCards(r.purchase_id_g2||'','selectLoadPurchase2')}</div>
-      <div class="fg">
-        <div class="fgrp"><label>Container No.</label><input id="l_cno2" value="${r.container_no_g2||''}"></div>
-        <div class="fgrp"><label>Vehicle No.</label><input id="l_vno2" value="${r.vehicle_no_g2||''}"></div>
-        <div class="fgrp"><label>Loading Qty (MT)</label><input type="number" id="l_qty2" value="${r.loading_qty_g2||''}"></div>
-        <div class="fgrp"><label>From (Location)</label><input id="l_from2" value="${r.from_location_g2||''}"></div>
-        <div class="fgrp"><label>To (Location)</label><input id="l_to2" value="${r.to_location_g2||''}"></div>
-        <div class="fgrp"><label>Vendor (auto)</label><input id="l_vendor2" value="${r.vendor_group2||''}" style="color:var(--green)"></div>
-        <div class="fgrp"><label>Bag Marking (auto)</label><input id="l_bmark2" value="${r.bag_marking_g2||''}" style="color:var(--green)"></div>
-        <div class="fgrp"><label>Surveyor</label><input id="l_surv2" value="${r.surveyor_g2||''}"></div>
-        <div class="fgrp"><label>Rate (INR/MT)</label><input type="number" id="l_rate2" value="${r.rate_g2||''}"></div>
-      </div>
-    </div>
-    <div class="fgrp full" style="margin-top:10px"><label>Remarks</label><textarea id="l_rem">${r.remarks||''}</textarea></div>`;
-  openModal(mw(id?'Edit Loading Assignment':'New Loading Assignment',f,id?`saveLoading('${id}')`:'saveLoading()'));
-}
-function fillAssignmentId(aid,bref){
-  const a=document.getElementById('l_aid');
-  const b=document.getElementById('l_bref');
-  if(a)a.value=aid;
-  if(b)b.value=bref;
+    <div id="groups-render">${renderGroups()}</div>
+    <div class="fgrp full" style="margin-top:12px"><label>Remarks</label><textarea id="l_rem">${r.remarks||''}</textarea></div>`;
+  openModal(mw(id?'Edit Loading Assignment':'New Loading Assignment',body,id?`saveLoading('${id}')`:'saveLoading()',true));
 }
 async function saveLoading(id){
-  const data={assignment_id:fv('l_aid'),loading_date:fv('l_date')||null,booking_ref:fv('l_bref')||null,status:fv('l_status'),
-    container_no_g1:fv('l_cno1'),vehicle_no_g1:fv('l_vno1'),loading_qty_g1:fv('l_qty1')||null,from_location_g1:fv('l_from1'),to_location_g1:fv('l_to1'),vendor_group1:fv('l_vendor1'),bag_marking_g1:fv('l_bmark1'),surveyor_g1:fv('l_surv1'),rate_g1:fv('l_rate1')||null,purchase_id_g1:_selLoadPurchase1||null,
-    container_no_g2:fv('l_cno2'),vehicle_no_g2:fv('l_vno2'),loading_qty_g2:fv('l_qty2')||null,from_location_g2:fv('l_from2'),to_location_g2:fv('l_to2'),vendor_group2:fv('l_vendor2'),bag_marking_g2:fv('l_bmark2'),surveyor_g2:fv('l_surv2'),rate_g2:fv('l_rate2')||null,purchase_id_g2:_selLoadPurchase2||null,
-    remarks:fv('l_rem')};
-  if(!id)data.id='LOD-'+Date.now().toString(36).toUpperCase();
+  const data={assignment_id:fv('l_aid'),loading_date:fv('l_date')||null,booking_ref:fv('l_bref')||null,status:fv('l_status'),groups:JSON.stringify(S.groups),remarks:fv('l_rem')};
+  if(!id)data.id=uid('LOD');
+  _lSelAssignment=null;_lSelBookingRef='';S.groups=[];
   await saveRec('loading',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// F. SURVEYOR REPORT & LOADING (new module)
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// F. SURVEYOR REPORT
+// ═══════════════════════════════════════════════════════════
 function renderSurveyor(){
-  const rows=(S.records.surveyor||[]).filter(o=>!S.search||o.assignment_id?.toLowerCase().includes(S.search.toLowerCase())||o.vendor?.toLowerCase().includes(S.search.toLowerCase()));
+  const rows=(S.recs.surveyor||[]).filter(o=>!S.search||[o.assignment_id,o.vendor,o.container_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search assignment, vendor…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderSurveyor()"><button class="pri" onclick="openSurveyorModal()">+ New Survey Report</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Assignment ID','Container No.','Vendor','Qty Surveyed (MT)','Survey Result','Fail Reason','Resolution','Weighment Slip','Bill Verified','Actual Loaded (MT)','Invoiced?','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${r.id}</span></td>
+  `<div class="card">`+tbl(rows,['ID','Date','Assignment ID','Container','Vendor','Qty Surveyed','Result','Fail Reason','Resolution','Weighment','Bill','Loaded (MT)','Invoice','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
     <td>${r.survey_date||'—'}</td>
-    <td><span style="font-family:var(--mono);font-size:11px;color:var(--purple)">${r.assignment_id||'—'}</span></td>
+    <td><span class="mono" style="color:var(--purple)">${r.assignment_id||'—'}</span></td>
     <td>${r.container_no||'—'}</td>
     <td><strong>${r.vendor||'—'}</strong></td>
-    <td style="font-family:var(--mono)">${fmtN(r.qty_surveyed)}</td>
+    <td class="mono">${fmtN(r.qty_surveyed)}</td>
     <td>${bdg(r.survey_result||'Pending')}</td>
     <td style="color:var(--red);font-size:11px">${r.fail_reason||'—'}</td>
     <td>${r.resolution||'—'}</td>
     <td>${bdg(r.weighment_slip?'Yes':'No')}</td>
     <td>${bdg(r.bill_verified?'Yes':'No')}</td>
-    <td style="font-family:var(--mono)">${fmtN(r.actual_loaded_qty)}</td>
-    <td>${bdg(r.invoice_created?'Yes':'No')}</td>
+    <td class="mono">${fmtN(r.actual_loaded_qty)}</td>
+    <td>${bdg(r.invoice_created||'No')}</td>
     <td><div class="acell"><button class="sm" onclick="openSurveyorModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('surveyor','${r.id}')">Del</button></div></td>
   </tr>`,'No surveyor reports yet.')+`</div>`;
 }
 function openSurveyorModal(id){
-  const r=id?(S.records.surveyor||[]).find(o=>o.id===id):{};
-  const loadingAssignments=S.records.loading||[];
-  const f=`<div class="fg">
-    ${secHdr('Survey Details')}
+  const r=id?(S.recs.surveyor||[]).find(o=>o.id===id):{};
+  const assignments=S.recs.loading||[];
+  const body=`<div class="fg">
+    ${sec('Survey Details')}
     <div class="fgrp"><label>Survey Date</label><input type="date" id="sv_date" value="${r.survey_date||today()}"></div>
-    <div class="fgrp"><label>Loading Assignment ID</label><select id="sv_aid"><option value="">— Select —</option>${loadingAssignments.map(l=>`<option value="${l.assignment_id||l.id}"${r.assignment_id===(l.assignment_id||l.id)?' selected':''}>${l.assignment_id||l.id} · ${l.booking_ref||'—'}</option>`).join('')}</select></div>
+    <div class="fgrp"><label>Loading Assignment ID</label><select id="sv_aid"><option value="">— Select —</option>${assignments.map(l=>`<option value="${l.assignment_id||l.id}"${r.assignment_id===(l.assignment_id||l.id)?' selected':''}>${l.assignment_id||l.id} · ${l.booking_ref||'—'}</option>`).join('')}</select></div>
     <div class="fgrp"><label>Container No.</label><input id="sv_cno" value="${r.container_no||''}"></div>
     <div class="fgrp"><label>Vendor</label><input id="sv_vendor" value="${r.vendor||''}"></div>
     <div class="fgrp"><label>Qty Surveyed (MT)</label><input type="number" id="sv_qty" value="${r.qty_surveyed||''}"></div>
     <div class="fgrp"><label>Surveyor Name</label><input id="sv_name" value="${r.surveyor_name||''}"></div>
-    ${secHdr('Survey Outcome')}
+    ${sec('Survey Outcome')}
     <div class="fgrp"><label>Survey Result</label><select id="sv_result">${sel(['Pending','Passed','Failed','Re-inspection'],r.survey_result||'Pending')}</select></div>
     <div class="fgrp full"><label>Fail Reason (if failed)</label><input id="sv_fail" value="${r.fail_reason||''}"></div>
     <div class="fgrp"><label>Resolution</label><select id="sv_res">${sel(['—','Cargo Passed — Loaded','New Material Manufactured','Sent to Different Vendor','New Order Created','Loaded at Discount'],r.resolution||'—')}</select></div>
     <div class="fgrp"><label>Alternate Vendor (if redirected)</label><input id="sv_altv" value="${r.alternate_vendor||''}"></div>
-    ${secHdr('Loading & Billing')}
+    ${sec('Loading & Billing')}
     <div class="fgrp"><label>Weighment Slip Received?</label><select id="sv_wt">${sel(['No','Yes'],r.weighment_slip?'Yes':'No')}</select></div>
     <div class="fgrp"><label>Vendor Bill Received?</label><select id="sv_bill">${sel(['No','Yes'],r.bill_verified?'Yes':'No')}</select></div>
     <div class="fgrp"><label>Actual Loaded Qty (MT)</label><input type="number" id="sv_loaded" value="${r.actual_loaded_qty||''}"></div>
@@ -869,46 +971,44 @@ function openSurveyorModal(id){
     <div class="fgrp"><label>Invoice Qty (MT)</label><input type="number" id="sv_invqty" value="${r.invoice_qty||''}"></div>
     <div class="fgrp full"><label>Remarks</label><textarea id="sv_rem">${r.remarks||''}</textarea></div>
   </div>`;
-  openModal(mw(id?'Edit Survey Report':'New Surveyor Report & Loading',f,id?`saveSurveyor('${id}')`:'saveSurveyor()'));
+  openModal(mw(id?'Edit Survey Report':'New Surveyor Report',body,id?`saveSurveyor('${id}')`:'saveSurveyor()'));
 }
 async function saveSurveyor(id){
   const data={survey_date:fv('sv_date')||null,assignment_id:fv('sv_aid'),container_no:fv('sv_cno'),vendor:fv('sv_vendor'),qty_surveyed:fv('sv_qty')||null,surveyor_name:fv('sv_name'),survey_result:fv('sv_result'),fail_reason:fv('sv_fail'),resolution:fv('sv_res'),alternate_vendor:fv('sv_altv'),weighment_slip:fv('sv_wt')==='Yes',bill_verified:fv('sv_bill')==='Yes',actual_loaded_qty:fv('sv_loaded')||null,invoice_created:fv('sv_inv'),invoice_no:fv('sv_invno'),invoice_qty:fv('sv_invqty')||null,remarks:fv('sv_rem')};
-  if(!id)data.id='SUR-'+Date.now().toString(36).toUpperCase();
+  if(!id)data.id=uid('SUR');
   await saveRec('surveyor',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// G. CUSTOMS & PORT
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// G. CUSTOMS
+// ═══════════════════════════════════════════════════════════
 function renderCustoms(){
-  const rows=(S.records.customs||[]).filter(o=>!S.search||o.container_no?.toLowerCase().includes(S.search.toLowerCase())||o.leo_copy_no?.toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search container, LEO no…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCustoms()"><button class="pri" onclick="openCustomsModal()">+ Add Customs Record</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Order ID','Clearing Agent','Customs Entry No.','LEO Copy No.','LEO Date','Gate-In Date','Seal No.','Port','Status','Actions'],r=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${r.id}</span></td>
+  const rows=(S.recs.customs||[]).filter(o=>!S.search||[o.container_no,o.leo_copy_no,o.order_id].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search container, LEO…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCustoms()"><button class="pri" onclick="openCustomsModal()">+ Add Customs Record</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Contract Ref','Clearing Agent','Customs Entry','LEO Copy No.','LEO Date','Gate-In Date','Seal No.','Port','Status','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
     <td>${r.entry_date||'—'}</td>
-    <td><strong>${r.container_no||'—'}</strong></td>
-    <td>${r.order_id||'—'}</td>
+    <td><strong>${r.container_no||'—'}</strong></td><td>${r.order_id||'—'}</td>
     <td>${r.clearing_agent||'—'}</td>
-    <td style="font-family:var(--mono)">${r.customs_entry_no||'—'}</td>
-    <td style="font-family:var(--mono);color:var(--accent)">${r.leo_copy_no||'—'}</td>
+    <td class="mono">${r.customs_entry_no||'—'}</td>
+    <td class="mono" style="color:var(--blue)">${r.leo_copy_no||'—'}</td>
     <td>${r.leo_date||'—'}</td><td>${r.gate_in_date||'—'}</td>
-    <td style="font-family:var(--mono)">${r.seal_no||'—'}</td>
-    <td>${r.port_name||'—'}</td>
+    <td class="mono">${r.seal_no||'—'}</td><td>${r.port_name||'—'}</td>
     <td>${bdg(r.status||'Clearance Pending')}</td>
     <td><div class="acell"><button class="sm" onclick="openCustomsModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('customs','${r.id}')">Del</button></div></td>
   </tr>`,'No customs records yet.')+`</div>`;
 }
 function openCustomsModal(id){
-  const r=id?(S.records.customs||[]).find(o=>o.id===id):{};
-  const f=`<div class="fg">
-    ${secHdr('Customs Details')}
+  const r=id?(S.recs.customs||[]).find(o=>o.id===id):{};
+  const body=`<div class="fg">
+    ${sec('Customs Details')}
     <div class="fgrp"><label>Date</label><input type="date" id="cu_date" value="${r.entry_date||today()}"></div>
     <div class="fgrp"><label>Container No.</label><input id="cu_cno" value="${r.container_no||''}"></div>
-    <div class="fgrp"><label>Linked Order / Contract</label><input id="cu_order" value="${r.order_id||''}"></div>
+    <div class="fgrp"><label>Linked Contract / Order</label><input id="cu_order" value="${r.order_id||''}"></div>
     <div class="fgrp"><label>Clearing Agent (CHA)</label><input id="cu_agent" value="${r.clearing_agent||''}"></div>
     <div class="fgrp"><label>Customs Entry No.</label><input id="cu_entry" value="${r.customs_entry_no||''}"></div>
     <div class="fgrp"><label>Clearance Date</label><input type="date" id="cu_cdate" value="${r.clearance_date||''}"></div>
-    ${secHdr('Port Entry')}
+    ${sec('Port Entry')}
     <div class="fgrp"><label>LEO Copy No.</label><input id="cu_leo" value="${r.leo_copy_no||''}"></div>
     <div class="fgrp"><label>LEO Date</label><input type="date" id="cu_leodate" value="${r.leo_date||''}"></div>
     <div class="fgrp"><label>Gate-In Date</label><input type="date" id="cu_gatein" value="${r.gate_in_date||''}"></div>
@@ -919,34 +1019,31 @@ function openCustomsModal(id){
     <div class="fgrp"><label>Status</label><select id="cu_status">${sel(['Clearance Pending','LEO Received','Gate-In Done','Loaded on Vessel'],r.status||'Clearance Pending')}</select></div>
     <div class="fgrp full"><label>Remarks</label><textarea id="cu_rem">${r.remarks||''}</textarea></div>
   </div>`;
-  openModal(mw(id?'Edit Customs':'Customs & Port Entry',f,id?`saveCustoms('${id}')`:'saveCustoms()'));
+  openModal(mw(id?'Edit Customs':'Customs & Port Entry',body,id?`saveCustoms('${id}')`:'saveCustoms()'));
 }
 async function saveCustoms(id){
   const data={entry_date:fv('cu_date')||null,container_no:fv('cu_cno'),order_id:fv('cu_order')||null,clearing_agent:fv('cu_agent'),customs_entry_no:fv('cu_entry'),clearance_date:fv('cu_cdate')||null,leo_copy_no:fv('cu_leo'),leo_date:fv('cu_leodate')||null,gate_in_date:fv('cu_gatein')||null,seal_no:fv('cu_seal'),gate_pass_no:fv('cu_gatepass'),port_name:fv('cu_port'),berth_terminal:fv('cu_berth'),status:fv('cu_status'),remarks:fv('cu_rem')};
-  if(!id)data.id='CUS-'+Date.now().toString(36).toUpperCase();
+  if(!id)data.id=uid('CUS');
   await saveRec('customs',data,id||null);
 }
 
-// ════════════════════════════════════════════════════════════
-// H. MASTER RATES
-// ════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// H. RATES
+// ═══════════════════════════════════════════════════════════
 function renderRates(){
-  const rows=(S.records.rates||[]).filter(r=>!S.search||r.category?.toLowerCase().includes(S.search.toLowerCase())||r.provider?.toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Filter category, provider…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderRates()"><button class="pri" onclick="openRateModal()">+ Add Rate</button></div>`+
-  `<div class="card">`+tbl(rows,['Category','Provider / Route','Description','Rate','Unit','Effective From','Remarks','Actions'],r=>`<tr>
+  const rows=(S.recs.rates||[]).filter(r=>!S.search||[r.category,r.provider,r.description].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Filter…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderRates()"><button class="pri" onclick="openRateModal()">+ Add Rate</button></div>`+
+  `<div class="card">`+tbl(rows,['Category','Provider','Description','Rate','Unit','Effective From','Actions'],r=>`<tr>
     <td><span class="badge bb">${r.category||'—'}</span></td>
-    <td><strong>${r.provider||'—'}</strong></td>
-    <td>${r.description||'—'}</td>
-    <td style="font-family:var(--mono);color:var(--green)">${fmt(r.rate)}</td>
-    <td>${r.unit||'—'}</td>
-    <td>${r.effective_from||'—'}</td>
-    <td style="color:var(--text3)">${r.remarks||'—'}</td>
+    <td><strong>${r.provider||'—'}</strong></td><td>${r.description||'—'}</td>
+    <td class="mono" style="color:var(--green)">${fmt(r.rate)}</td>
+    <td>${r.unit||'—'}</td><td>${r.effective_from||'—'}</td>
     <td><div class="acell"><button class="sm" onclick="openRateModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('rates','${r.id}')">Del</button></div></td>
   </tr>`,'No rates defined yet.')+`</div>`;
 }
 function openRateModal(id){
-  const r=id?(S.records.rates||[]).find(o=>o.id===id):{};
-  const f=`<div class="fg">
+  const r=id?(S.recs.rates||[]).find(o=>o.id===id):{};
+  const body=`<div class="fg">
     <div class="fgrp"><label>Category</label><select id="r_cat">${sel(['Freight','Transporter','Clearing','Phyto','Fumigation','Plot Charges','Survey'],r.category||'Freight')}</select></div>
     <div class="fgrp"><label>Provider / Route</label><input id="r_prov" value="${r.provider||''}"></div>
     <div class="fgrp full"><label>Description</label><input id="r_desc" value="${r.description||''}"></div>
@@ -955,15 +1052,15 @@ function openRateModal(id){
     <div class="fgrp"><label>Effective From</label><input type="date" id="r_from" value="${r.effective_from||today()}"></div>
     <div class="fgrp full"><label>Remarks</label><textarea id="r_rem">${r.remarks||''}</textarea></div>
   </div>`;
-  openModal(mw(id?'Edit Rate':'Add Rate',f,id?`saveRate('${id}')`:'saveRate()'));
+  openModal(mw(id?'Edit Rate':'Add Rate',body,id?`saveRate('${id}')`:'saveRate()'));
 }
 async function saveRate(id){
   const data={category:fv('r_cat'),provider:fv('r_prov'),description:fv('r_desc'),rate:fv('r_rate')||null,unit:fv('r_unit'),effective_from:fv('r_from')||null,remarks:fv('r_rem')};
-  if(!id)data.id='RATE-'+Date.now().toString(36).toUpperCase();
+  if(!id)data.id=uid('RATE');
   await saveRec('rates',data,id||null);
 }
 
-// ── Page registry ─────────────────────────────────────────────────────────
+// ── Page registry ──────────────────────────────────────────
 const pages={
   dashboard:{title:'Dashboard',render:renderDash},
   orders:{title:'Orders & Contracts',render:renderOrders},
