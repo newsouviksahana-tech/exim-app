@@ -1075,6 +1075,579 @@ async function saveSpec(id){
   await saveRec('product_specs',data,id||null);
 }
 
+
+// ══════════════════════════════════════════════════════════
+// F. SURVEYOR REPORT — EX-FACTORY
+// ══════════════════════════════════════════════════════════
+let _svSelAssign=null,_svSelRow=null,_svSelAssignObj=null;
+
+function renderSurveyorEf(){
+  const rows=S.recs.surveyor_ef.filter(o=>!S.search||[o.assignment_id,o.vendor,o.container_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const today2=new Date();
+  return`<div class="sbar"><input placeholder="Search assignment, vendor, container…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderSurveyorEf()"><button class="pri" onclick="openSurveyorEfModal()">+ New Survey Report</button></div>`+
+  `<div class="card">`+tbl(rows,
+    ['ID','Date','Assignment','Container','Vendor','Qty Surveyed','Result','Resolution','Weighment','Bill','Loaded (MT)','Invoice Flag','Actions'],
+    r=>`<tr>
+      <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+      <td>${r.survey_date||'—'}</td>
+      <td><span class="mono" style="color:var(--purple)">${r.assignment_id||'—'}</span></td>
+      <td>${r.container_no||'—'}</td>
+      <td><strong>${r.vendor||'—'}</strong></td>
+      <td class="mono">${fmtN(r.qty_presented)}</td>
+      <td>${bdg(r.survey_result||'Pending')}</td>
+      <td style="font-size:11px;color:var(--txt2)">${r.resolution&&r.resolution!=='—'?r.resolution:'—'}</td>
+      <td>${bdg(r.weighment_slip?'Yes':'No')}</td>
+      <td>${bdg(r.bill_approved||'Pending')}</td>
+      <td class="mono">${fmtN(r.actual_loaded_qty)}</td>
+      <td>${bdg(r.invoice_flag?'Yes':'No')}</td>
+      <td><div class="acell"><button class="sm" onclick="openSurveyorEfModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('surveyor_ef','${r.id}')">Del</button></div></td>
+    </tr>`,
+    'No survey reports yet. Click + New Survey Report to begin.'
+  )+`</div>`;
+}
+
+function openSurveyorEfModal(id){
+  S._editIds.surveyor_ef=id||null;
+  const r=id?S.recs.surveyor_ef.find(o=>o.id===id):{};
+  _reRenderFn=()=>openSurveyorEfModal(id);
+
+  // Build assignment query window
+  const aq=S.qSearch.assignment||'';
+  const alist=S.recs.loading.filter(l=>!aq||[l.assignment_id,l.booking_ref].join(' ').toLowerCase().includes(aq.toLowerCase()));
+
+  // Build container row picker (shown after assignment selected)
+  let rowPickerHtml='';
+  if(_svSelAssignObj){
+    const groups=_svSelAssignObj.groups||[];
+    rowPickerHtml=`<div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Select Container Row from Assignment</div>
+      ${groups.map((g,gi)=>`
+        <div style="margin-bottom:8px">
+          <div style="font-size:10px;font-weight:500;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--bdr)">${g.name} · Surveyor: ${g.surveyor||'—'}</div>
+          ${(g.rows||[]).map((rw,ri)=>`
+            <div class="qcard${_svSelRow&&_svSelRow.cno===rw.cno?' sel':''}" style="margin-bottom:4px" onclick="pickSurveyRow(${gi},${ri})">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <span class="mono" style="color:var(--blue)">${rw.cno||'—'}</span>
+                  <span style="font-size:11px;color:var(--txt2);margin-left:8px">${rw.vno||'—'}</span>
+                </div>
+                <div style="display:flex;gap:5px">
+                  <span class="badge ba">${rw.qty||'?'} MT</span>
+                  <span class="badge bg">${rw.vendor||'—'}</span>
+                </div>
+              </div>
+              <div style="font-size:10px;color:var(--txt3);margin-top:3px">${rw.from||'—'} → ${rw.to||'—'}</div>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+  }
+
+  const result=r.survey_result||'';
+  const body=`
+    <div style="margin-bottom:2px">
+      <div class="qwin">
+        <div class="qwin-hdr">
+          <span class="qwin-title">Step 1 — Select Loading Assignment</span>
+          <input class="qwin-search" placeholder="Search assignment, booking…" value="${aq}" oninput="S.qSearch.assignment=this.value;reRenderModal()">
+        </div>
+        <div class="qwin-list">
+          ${alist.length?alist.map(l=>{
+            let grps=[];try{grps=JSON.parse(l.groups||'[]');}catch(e){}
+            const totC=grps.reduce((s,g)=>s+g.rows.length,0);
+            return`<div class="qcard${_svSelAssign===(l.assignment_id||l.id)?' sel':''}" onclick="pickSurveyAssign('${l.id}')">
+              <div class="qcard-top">
+                <div><div class="qcard-id" style="color:var(--purple)">${l.assignment_id||l.id}</div>
+                <div class="qcard-sub">Booking: ${l.booking_ref||'—'}</div></div>
+                <span class="badge bb">${totC} containers</span>
+              </div>
+            </div>`;}).join(''):`<div class="empty">No loading assignments found.</div>`}
+        </div>
+        ${_svSelAssign?`<div class="sel-pill"><span class="sel-pill-txt">✓ Assignment: ${_svSelAssign} selected</span><button class="xs dan" onclick="clearSurveyAssign()">Clear</button></div>`:''}
+      </div>
+      ${rowPickerHtml}
+    </div>
+
+    <div class="fg">
+      ${msec('Survey Details (auto-filled from row selection)')}
+      <div class="fgrp"><label>Assignment ID</label><input id="sv_aid" value="${r.assignment_id||_svSelAssign||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Survey Date</label><input type="date" id="sv_date" value="${r.survey_date||today()}"></div>
+      <div class="fgrp"><label>Container No. (auto)</label><input id="sv_cno" value="${r.container_no||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Vehicle No. (auto)</label><input id="sv_vno" value="${r.vehicle_no||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Vendor (auto)</label><input id="sv_vendor" value="${r.vendor||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Bag Marking (auto)</label><input id="sv_bmark" value="${r.bag_marking||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Surveyor Name</label><input id="sv_surv" value="${r.surveyor_name||''}"></div>
+      <div class="fgrp"><label>Planned Qty (MT) (auto)</label><input id="sv_planned" value="${r.qty_planned||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Qty Presented by Vendor (MT)</label><input type="number" id="sv_presented" value="${r.qty_presented||''}" placeholder="0.000"></div>
+
+      ${msec('Step 2 — Survey Result')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      ${['Passed','Failed','Re-inspection'].map(res=>{
+        const active=result===res;
+        const cls=res==='Passed'?'bg':res==='Failed'?'br':'ba';
+        return`<div onclick="setSurveyResult('${res}')" style="border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;cursor:pointer;text-align:center;transition:all .12s;${active?`border-color:${res==='Passed'?'var(--green)':res==='Failed'?'var(--red)':'var(--amber)'};background:${res==='Passed'?'rgba(52,211,153,.08)':res==='Failed'?'rgba(248,113,113,.08)':'rgba(251,191,36,.08)'}`:''}"  id="sres-${res.replace(' ','')}">
+          <div style="font-size:18px;margin-bottom:4px">${res==='Passed'?'✅':res==='Failed'?'❌':'🔄'}</div>
+          <div style="font-size:12px;font-weight:500;color:${res==='Passed'?'var(--green)':res==='Failed'?'var(--red)':'var(--amber)'}">${res}</div>
+          <div style="font-size:10px;color:var(--txt3);margin-top:2px">${res==='Passed'?'Proceed to loading':res==='Failed'?'Resolution required':'Partial / recheck'}</div>
+        </div>`;}).join('')}
+    </div>
+    <input type="hidden" id="sv_result" value="${result}">
+
+    <div id="sv_fail_section" style="display:${result==='Failed'||result==='Re-inspection'?'block':'none'}">
+      <div class="fg">
+        <div class="fgrp full"><label>Fail Reason / Specification Issue</label><textarea id="sv_failreason">${r.fail_reason||''}</textarea></div>
+        <div class="fgrp full"><label>Resolution</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:4px">
+            ${['New material manufactured','Redirect to different vendor','Accept at discounted rate','Partial acceptance'].map(res=>`
+              <div onclick="setSurveyResolution('${res}')" id="svres-${res.replace(/ /g,'-')}" style="border:1px solid var(--bdr);border-radius:7px;padding:8px 10px;cursor:pointer;transition:all .12s;${(r.resolution||'')==res?'border-color:var(--blue);background:rgba(79,156,249,.08)':''}">
+                <div style="font-size:11px;font-weight:500;color:var(--txt)">${res}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <input type="hidden" id="sv_resolution" value="${r.resolution||''}">
+        <div id="sv_alt_vendor_row" class="fgrp" style="display:${r.resolution==='Redirect to different vendor'?'flex':'none'}">
+          <label>Alternate Vendor</label><input id="sv_altvendor" value="${r.alternate_vendor||''}">
+        </div>
+        <div id="sv_disc_row" class="fgrp full" style="display:${r.resolution==='Accept at discounted rate'?'grid':'none'};grid-template-columns:1fr 1fr;gap:9px">
+          <div class="fgrp"><label>Original Price (INR/MT)</label><input type="number" id="sv_origprice" value="${r.disc_original_price||''}"></div>
+          <div class="fgrp"><label>Revised Price (INR/MT)</label><input type="number" id="sv_discprice" value="${r.disc_revised_price||''}"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sv_loading_section" style="display:${result==='Passed'||result==='Re-inspection'?'block':'none'}">
+      <div class="fg">
+        ${msec('Step 3 — Loading, Weighment & Bill Verification')}
+        <div class="fgrp"><label>Weighment Slip Received?</label><select id="sv_wt">${sel(['No','Yes'],r.weighment_slip?'Yes':'No')}</select></div>
+        <div class="fgrp"><label>Weighment Slip No.</label><input id="sv_wtno" value="${r.weighment_slip_no||''}"></div>
+        <div class="fgrp"><label>Actual Loaded Qty (MT)</label><input type="number" id="sv_loaded" value="${r.actual_loaded_qty||''}" placeholder="0.000" oninput="calcSurveyDiffs()"></div>
+        <div class="fgrp"><label>Loading Completed Date</label><input type="date" id="sv_loaddate" value="${r.loading_datetime?r.loading_datetime.slice(0,10):''}"></div>
+
+        <div class="fgrp"><label>PO Price (INR/MT)</label><input type="number" id="sv_poprice" value="${r.po_price||''}" oninput="calcSurveyDiffs()"></div>
+        <div class="fgrp"><label>Vendor Bill Price (INR/MT)</label><input type="number" id="sv_billprice" value="${r.bill_price||''}" oninput="calcSurveyDiffs()"></div>
+        <div class="fgrp"><label>PO Qty (MT)</label><input type="number" id="sv_poqty" value="${r.po_qty||''}" oninput="calcSurveyDiffs()"></div>
+        <div class="fgrp"><label>Vendor Bill Qty (MT)</label><input type="number" id="sv_billqty" value="${r.bill_qty||''}" oninput="calcSurveyDiffs()"></div>
+
+        <div class="fgrp"><label>Price Difference</label><div id="sv_pricediff" style="padding:6px 0;font-size:12px;font-family:var(--mono);color:var(--green)">—</div></div>
+        <div class="fgrp"><label>Qty Difference (MT)</label><div id="sv_qtydiff" style="padding:6px 0;font-size:12px;font-family:var(--mono);color:var(--green)">—</div></div>
+        <div class="fgrp"><label>Bill Approved?</label><select id="sv_billapproved">${sel(['Pending','Approved','Disputed'],r.bill_approved||'Pending')}</select></div>
+        <div class="fgrp"><label>Qty Deducted (MT)</label><input type="number" id="sv_deducted" value="${r.qty_deducted||''}"></div>
+
+        ${msec('Invoice Flag')}
+        <div class="fgrp full" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:12px;font-weight:500;color:var(--txt);margin-bottom:2px">Flag for Invoice Creation</div>
+            <div style="font-size:10px;color:var(--txt3)">Toggle on if invoice should be created for this container. Full invoice module builds on this.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div id="sv_inv_toggle" onclick="toggleSurveyInvoice()" style="width:34px;height:18px;border-radius:9px;cursor:pointer;position:relative;border:1px solid var(--bdr);background:${r.invoice_flag?'var(--green)':'var(--bdr)'};transition:background .15s">
+              <div style="width:12px;height:12px;border-radius:50%;background:#fff;position:absolute;top:2px;left:${r.invoice_flag?'18px':'2px'};transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)" id="sv_knob"></div>
+            </div>
+            <span id="sv_inv_lbl" style="font-size:11px;color:${r.invoice_flag?'var(--green)':'var(--txt3)'};font-weight:${r.invoice_flag?'500':'400'}">${r.invoice_flag?'Flagged':'Not flagged'}</span>
+          </div>
+        </div>
+        <input type="hidden" id="sv_invflag" value="${r.invoice_flag?'1':''}">
+        <div id="sv_inv_detail" style="display:${r.invoice_flag?'contents':'none'}">
+          <div class="fgrp"><label>Invoice No. (if created)</label><input id="sv_invno" value="${r.invoice_no||''}"></div>
+          <div class="fgrp"><label>Invoice Qty (MT)</label><input type="number" id="sv_invqty" value="${r.invoice_qty||''}"></div>
+        </div>
+
+        <div class="fgrp full"><label>Remarks</label><textarea id="sv_rem">${r.remarks||''}</textarea></div>
+      </div>
+    </div>`;
+
+  openModal(mw(id?'Edit Survey Report':'New Surveyor Report — Ex-Factory',body,id?`saveSurveyorEf('${id}')`:'saveSurveyorEf()',true));
+  setTimeout(()=>calcSurveyDiffs(),100);
+}
+
+function pickSurveyAssign(lid){
+  const l=S.recs.loading.find(x=>x.id===lid);if(!l)return;
+  _svSelAssign=l.assignment_id||l.id;
+  _svSelAssignObj=l;
+  try{_svSelAssignObj.groups=JSON.parse(l.groups||'[]');}catch(e){_svSelAssignObj.groups=[];}
+  _svSelRow=null;
+  S.qSearch.assignment='';
+  openSurveyorEfModal(S._editIds.surveyor_ef);
+}
+function clearSurveyAssign(){_svSelAssign=null;_svSelAssignObj=null;_svSelRow=null;openSurveyorEfModal(S._editIds.surveyor_ef);}
+function pickSurveyRow(gi,ri){
+  if(!_svSelAssignObj)return;
+  const g=_svSelAssignObj.groups[gi];
+  const rw=g.rows[ri];
+  _svSelRow={g,rw};
+  af('sv_aid',_svSelAssign);
+  af('sv_cno',rw.cno||'');
+  af('sv_vno',rw.vno||'');
+  af('sv_vendor',rw.vendor||'');
+  af('sv_bmark',rw.bagMarking||'');
+  af('sv_planned',rw.qty||'');
+  const survEl=document.getElementById('sv_surv');
+  if(survEl&&!survEl.value)survEl.value=g.surveyor||'';
+  openSurveyorEfModal(S._editIds.surveyor_ef);
+}
+function setSurveyResult(res){
+  document.getElementById('sv_result').value=res;
+  ['Passed','Failed','Re-inspection'].forEach(r2=>{
+    const el=document.getElementById('sres-'+r2.replace(' ',''));
+    if(el){
+      const active=r2===res;
+      el.style.borderColor=active?(r2==='Passed'?'var(--green)':r2==='Failed'?'var(--red)':'var(--amber)'):'var(--bdr)';
+      el.style.background=active?(r2==='Passed'?'rgba(52,211,153,.08)':r2==='Failed'?'rgba(248,113,113,.08)':'rgba(251,191,36,.08)'):'';
+    }
+  });
+  document.getElementById('sv_fail_section').style.display=(res==='Failed'||res==='Re-inspection')?'block':'none';
+  document.getElementById('sv_loading_section').style.display=(res==='Passed'||res==='Re-inspection')?'block':'none';
+}
+function setSurveyResolution(res){
+  document.getElementById('sv_resolution').value=res;
+  ['New material manufactured','Redirect to different vendor','Accept at discounted rate','Partial acceptance'].forEach(r2=>{
+    const el=document.getElementById('svres-'+r2.replace(/ /g,'-'));
+    if(el){el.style.borderColor=r2===res?'var(--blue)':'var(--bdr)';el.style.background=r2===res?'rgba(79,156,249,.08)':'';}
+  });
+  const av=document.getElementById('sv_alt_vendor_row');
+  const disc=document.getElementById('sv_disc_row');
+  if(av)av.style.display=res==='Redirect to different vendor'?'flex':'none';
+  if(disc)disc.style.display=res==='Accept at discounted rate'?'grid':'none';
+}
+function calcSurveyDiffs(){
+  const pp=parseFloat(document.getElementById('sv_poprice')?.value)||0;
+  const bp=parseFloat(document.getElementById('sv_billprice')?.value)||0;
+  const pq=parseFloat(document.getElementById('sv_poqty')?.value)||0;
+  const bq=parseFloat(document.getElementById('sv_billqty')?.value)||0;
+  const pd=bp-pp,qd=bq-pq;
+  const pel=document.getElementById('sv_pricediff');
+  const qel=document.getElementById('sv_qtydiff');
+  if(pel&&(pp||bp)){pel.textContent=(pd>=0?'+':'')+'₹'+fmt(pd);pel.style.color=pd===0?'var(--green)':pd>0?'var(--red)':'var(--green)';}
+  if(qel&&(pq||bq)){qel.textContent=(qd>=0?'+':'')+qd.toFixed(3)+' MT';qel.style.color=qd===0?'var(--green)':Math.abs(qd)>0.1?'var(--red)':'var(--green)';}
+}
+function toggleSurveyInvoice(){
+  const flag=document.getElementById('sv_invflag');
+  const tog=document.getElementById('sv_inv_toggle');
+  const knob=document.getElementById('sv_knob');
+  const lbl=document.getElementById('sv_inv_lbl');
+  const det=document.getElementById('sv_inv_detail');
+  const on=flag.value!=='1';
+  flag.value=on?'1':'';
+  if(tog)tog.style.background=on?'var(--green)':'var(--bdr)';
+  if(knob)knob.style.left=on?'18px':'2px';
+  if(lbl){lbl.textContent=on?'Flagged':'Not flagged';lbl.style.color=on?'var(--green)':'var(--txt3)';lbl.style.fontWeight=on?'500':'400';}
+  if(det)det.style.display=on?'contents':'none';
+}
+async function saveSurveyorEf(id){
+  const data={
+    survey_date:fv('sv_date')||null,
+    assignment_id:fv('sv_aid')||_svSelAssign||null,
+    container_no:fv('sv_cno'),vehicle_no:fv('sv_vno'),
+    vendor:fv('sv_vendor'),bag_marking:fv('sv_bmark'),
+    surveyor_name:fv('sv_surv'),
+    qty_planned:fv('sv_planned')||null,
+    qty_presented:fv('sv_presented')||null,
+    survey_result:fv('sv_result')||'Pending',
+    fail_reason:fv('sv_failreason'),
+    resolution:fv('sv_resolution'),
+    alternate_vendor:fv('sv_altvendor'),
+    disc_original_price:fv('sv_origprice')||null,
+    disc_revised_price:fv('sv_discprice')||null,
+    weighment_slip:fv('sv_wt')==='Yes',
+    weighment_slip_no:fv('sv_wtno'),
+    actual_loaded_qty:fv('sv_loaded')||null,
+    loading_datetime:fv('sv_loaddate')||null,
+    po_price:fv('sv_poprice')||null,
+    bill_price:fv('sv_billprice')||null,
+    po_qty:fv('sv_poqty')||null,
+    bill_qty:fv('sv_billqty')||null,
+    bill_approved:fv('sv_billapproved'),
+    qty_deducted:fv('sv_deducted')||null,
+    invoice_flag:fv('sv_invflag')==='1',
+    invoice_no:fv('sv_invno'),
+    invoice_qty:fv('sv_invqty')||null,
+    remarks:fv('sv_rem')
+  };
+  if(!id)data.id=uid('SUR');
+  _svSelAssign=null;_svSelRow=null;_svSelAssignObj=null;_reRenderFn=null;
+  await saveRec('surveyor_ef',data,id||null);
+}
+
+// ══════════════════════════════════════════════════════════
+// G. PSI — PRE-SHIPMENT INSPECTION (CFS Flow)
+// ══════════════════════════════════════════════════════════
+let _psiSelC=null;
+function renderPsi(){
+  const rows=S.recs.psi.filter(o=>!S.search||[o.miller_name,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search miller, contract…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderPsi()"><button class="pri" onclick="openPsiModal()">+ New PSI</button></div>`+
+  `<div class="card">`+tbl(rows,
+    ['PSI ID','Date','Miller Name','Location','Contract','Surveyor','Qty Surveyed','Qty Approved','Qty Dispatched','Available to Dispatch','Result','Actions'],
+    r=>{
+      const avail=(r.qty_approved||0)-(r.qty_dispatched||0);
+      return`<tr>
+        <td><span class="mono" style="color:var(--pink)">${r.id}</span></td>
+        <td>${r.psi_date||'—'}</td>
+        <td><strong>${r.miller_name||'—'}</strong></td>
+        <td>${r.miller_location||'—'}</td>
+        <td><span class="mono" style="color:var(--blue)">${r.linked_contract_no||'—'}</span></td>
+        <td>${r.surveyor_name||'—'}</td>
+        <td class="mono">${fmtN(r.qty_surveyed)}</td>
+        <td class="mono dok">${fmtN(r.qty_approved)}</td>
+        <td class="mono">${fmtN(r.qty_dispatched)}</td>
+        <td class="mono ${avail>0?'dok':'dbad'}">${fmtN(avail)}</td>
+        <td>${bdg(r.result||'Pending')}</td>
+        <td><div class="acell"><button class="sm" onclick="openPsiModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('psi','${r.id}')">Del</button></div></td>
+      </tr>`;
+    },
+    'No PSI records yet. Click + New PSI to begin.'
+  )+`</div>`;
+}
+function selPsiContract(id){
+  _psiSelC=id;
+  const c=S.recs.orders.find(o=>o.id===id);
+  if(c){af('psi_contract',c.contract_no||'');}
+  S.qSearch.contract='';
+  openPsiModal(S._editIds.psi);
+}
+function openPsiModal(id){
+  S._editIds.psi=id||null;
+  const r=id?S.recs.psi.find(o=>o.id===id):{};
+  const selId=_psiSelC||(id?r.linked_contract_id:null);
+  _reRenderFn=()=>openPsiModal(id);
+
+  // Get product spec fields for this contract
+  const contract=selId?S.recs.orders.find(o=>o.id===selId):null;
+  const specRec=contract?S.recs.product_specs.find(ps=>ps.product===contract.product):null;
+  const specFields=specRec?.spec_fields?specRec.spec_fields.split(',').map(s=>s.trim()):['Moisture %','Broken %','DD %','Length','Black Kernels'];
+  let existingSpecs={};
+  try{existingSpecs=JSON.parse(r.spec_results||'{}');}catch(e){}
+
+  const body=`
+    ${contractQWin(selId,'selPsiContract')}
+    <div class="fg">
+      <div class="fgrp"><label>Linked Contract (auto)</label><input id="psi_contract" value="${r.linked_contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>PSI Date</label><input type="date" id="psi_date" value="${r.psi_date||today()}"></div>
+      <div class="fgrp"><label>Miller / Supplier Name</label><input id="psi_miller" value="${r.miller_name||''}"></div>
+      <div class="fgrp"><label>Miller Location</label><input id="psi_loc" value="${r.miller_location||''}"></div>
+      <div class="fgrp"><label>Surveyor Name</label><input id="psi_surveyor" value="${r.surveyor_name||''}"></div>
+      <div class="fgrp"><label>Purchase ID / Ref</label><input id="psi_purchase" value="${r.purchase_id||''}"></div>
+      ${msec('Quantity')}
+      <div class="fgrp"><label>Qty Surveyed (MT)</label><input type="number" id="psi_surveyed" value="${r.qty_surveyed||''}" placeholder="0.000" oninput="calcPsiAvail()"></div>
+      <div class="fgrp"><label>Qty Approved to Dispatch (MT)</label><input type="number" id="psi_approved" value="${r.qty_approved||''}" placeholder="0.000 (can be less than surveyed)" oninput="calcPsiAvail()"></div>
+      <div class="fgrp"><label>Qty Already Dispatched (MT)</label><input type="number" id="psi_dispatched" value="${r.qty_dispatched||0}" oninput="calcPsiAvail()"></div>
+      <div class="fgrp"><label>Available to Dispatch (auto)</label><div id="psi_avail" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green)">—</div></div>
+      ${msec('Quality Specifications')}
+      ${specFields.map(f=>`
+        <div class="fgrp">
+          <label>${f}</label>
+          <input type="number" step="0.01" id="spec_${f.replace(/[^a-zA-Z0-9]/g,'_')}" value="${existingSpecs[f]||''}" placeholder="Enter reading">
+        </div>`).join('')}
+      <div class="fgrp full"><label>Spec Notes / Observations</label><textarea id="psi_notes">${r.spec_notes||''}</textarea></div>
+      ${msec('Result')}
+      <div class="fgrp"><label>PSI Result</label><select id="psi_result">${sel(['Pending','Passed','Failed','Conditional Pass'],r.result||'Pending')}</select></div>
+      <div class="fgrp full"><label>Remarks / Fail Reason</label><textarea id="psi_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit PSI':'New Pre-Shipment Inspection',body,id?`savePsi('${id}')`:'savePsi()',true));
+  setTimeout(()=>calcPsiAvail(),80);
+}
+function calcPsiAvail(){
+  const approved=parseFloat(document.getElementById('psi_approved')?.value)||0;
+  const dispatched=parseFloat(document.getElementById('psi_dispatched')?.value)||0;
+  const avail=approved-dispatched;
+  const el=document.getElementById('psi_avail');
+  if(el){el.textContent=avail.toFixed(3)+' MT';el.style.color=avail>0?'var(--green)':avail===0?'var(--amber)':'var(--red)';}
+}
+async function savePsi(id){
+  // Collect dynamic spec fields
+  const contract=_psiSelC?S.recs.orders.find(o=>o.id===_psiSelC):null;
+  const specRec=contract?S.recs.product_specs.find(ps=>ps.product===contract.product):null;
+  const specFields=specRec?.spec_fields?specRec.spec_fields.split(',').map(s=>s.trim()):['Moisture %','Broken %','DD %','Length','Black Kernels'];
+  const specResults={};
+  specFields.forEach(f=>{
+    const v=fv('spec_'+f.replace(/[^a-zA-Z0-9]/g,'_'));
+    if(v)specResults[f]=parseFloat(v);
+  });
+  const data={
+    psi_date:fv('psi_date')||null,miller_name:fv('psi_miller'),miller_location:fv('psi_loc'),
+    surveyor_name:fv('psi_surveyor'),purchase_id:fv('psi_purchase')||null,
+    linked_contract_no:fv('psi_contract'),linked_contract_id:_psiSelC||null,
+    qty_surveyed:fv('psi_surveyed')||null,qty_approved:fv('psi_approved')||null,
+    qty_dispatched:fv('psi_dispatched')||0,
+    spec_results:JSON.stringify(specResults),spec_notes:fv('psi_notes'),
+    result:fv('psi_result'),remarks:fv('psi_rem')
+  };
+  if(!id)data.id=uid('PSI');
+  _psiSelC=null;_reRenderFn=null;
+  await saveRec('psi',data,id||null);
+}
+
+// ══════════════════════════════════════════════════════════
+// H. CFS TRUCK DISPATCH & RECEIPT
+// ══════════════════════════════════════════════════════════
+let _cfsSelC=null,_cfsSelPsi=null;
+function renderCfsTrucks(){
+  const rows=S.recs.cfs_trucks.filter(o=>!S.search||[o.miller_name,o.vehicle_no,o.brand,o.linked_contract_no,o.invoice_ref].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  // Group by invoice ref for display
+  const byInvoice={};
+  rows.forEach(r=>{const k=r.invoice_ref||'—';if(!byInvoice[k])byInvoice[k]=[];byInvoice[k].push(r);});
+  const today2=new Date();
+
+  return`<div class="sbar">
+    <input placeholder="Search miller, vehicle, brand, invoice ref…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCfsTrucks()">
+    <button class="pri" onclick="openCfsTruckModal()">+ Add Truck Dispatch</button>
+  </div>
+  <div class="kgrid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="klbl">Total Trucks</div><div class="kval" style="color:var(--blue)">${rows.length}</div></div>
+    <div class="kpi"><div class="klbl">Total Bags</div><div class="kval" style="color:var(--amber)">${fmtN(rows.reduce((s,r)=>s+(Number(r.total_bags)||0),0))}</div></div>
+    <div class="kpi"><div class="klbl">Total Qty (MT)</div><div class="kval" style="color:var(--green)">${fmt(rows.reduce((s,r)=>s+(Number(r.qty_mt)||0),0))}</div></div>
+    <div class="kpi"><div class="klbl">Total Amount (INR)</div><div class="kval" style="color:var(--amber);font-size:16px">₹${fmt(rows.reduce((s,r)=>s+(Number(r.amount_inr)||0),0))}</div></div>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['ID','Invoice Ref','Brand','Miller','Miller Inv No.','Truck Date','Vehicle No.','Bags','Qty (MT)','Rate (INR)','Amount (INR)','CFS Date','CFS','Fac.Net (MT)','CFS Net (MT)','Diff','PSI Flag','Remarks'],
+    r=>{
+      const diff=(r.cfs_net||0)-(r.factory_net||0);
+      const psi=_cfsSelPsi||S.recs.psi.find(p=>p.id===r.psi_id);
+      const psiAvail=psi?(psi.qty_approved||0)-(psi.qty_dispatched||0):null;
+      return`<tr>
+        <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+        <td><span class="mono" style="color:var(--blue)">${r.invoice_ref||'—'}</span></td>
+        <td>${r.brand||'—'}</td>
+        <td><strong>${r.miller_name||'—'}</strong></td>
+        <td class="mono">${r.miller_invoice_no||'—'}</td>
+        <td>${r.truck_date||'—'}</td>
+        <td class="mono">${r.vehicle_no||'—'}</td>
+        <td class="mono">${fmtN(r.total_bags)}</td>
+        <td class="mono">${fmtN(r.qty_mt)}</td>
+        <td class="mono">₹${fmt(r.rate_inr)}</td>
+        <td class="mono">₹${fmt(r.amount_inr)}</td>
+        <td>${r.cfs_date||'—'}</td>
+        <td>${r.cfs_name||'—'}</td>
+        <td class="mono">${fmtN(r.factory_net)}</td>
+        <td class="mono">${fmtN(r.cfs_net)}</td>
+        <td class="mono ${Math.abs(diff)<0.1?'dok':'dbad'}">${diff>0?'+':''}${fmtN(diff)}</td>
+        <td>${r.psi_id?bdg('PSI Done'):bdg('PSI Pending')}</td>
+        <td style="font-size:11px;color:var(--txt3)">${r.is_part?'PART':''} ${r.remarks||''}</td>
+      </tr>`;
+    },
+    'No truck dispatches yet. Click + Add Truck Dispatch to begin.'
+  )+`</div>`;
+}
+
+function selCfsContract(id){
+  _cfsSelC=id;
+  const c=S.recs.orders.find(o=>o.id===id);
+  if(c){af('cfs_contract',c.contract_no||'');af('cfs_brand',c.bag_marking?.split('/')[0]?.trim()||c.product||'');}
+  S.qSearch.contract='';
+  openCfsTruckModal(S._editIds.cfs_trucks);
+}
+function openCfsTruckModal(id){
+  S._editIds.cfs_trucks=id||null;
+  const r=id?S.recs.cfs_trucks.find(o=>o.id===id):{};
+  const selCId=_cfsSelC||(id?r.linked_contract_id:null);
+  _reRenderFn=()=>openCfsTruckModal(id);
+
+  // PSI dropdown for selected contract
+  const psiList=S.recs.psi.filter(p=>!selCId||p.linked_contract_id===selCId||p.linked_contract_no===fv('cfs_contract'));
+
+  const body=`
+    ${contractQWin(selCId,'selCfsContract')}
+    <div class="fg">
+      <div class="fgrp"><label>Linked Contract (auto)</label><input id="cfs_contract" value="${r.linked_contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Export Invoice Ref</label><input id="cfs_invref" value="${r.invoice_ref||''}" placeholder="e.g. DARM/26-27/01"></div>
+      <div class="fgrp"><label>Brand</label><input id="cfs_brand" value="${r.brand||''}"></div>
+      <div class="fgrp"><label>Billing Party (Exporter)</label><input id="cfs_billing" value="${r.billing_party||''}"></div>
+      ${msec('Miller / Supplier Details')}
+      <div class="fgrp"><label>Miller / Supplier Name</label><input id="cfs_miller" value="${r.miller_name||''}"></div>
+      <div class="fgrp"><label>Miller Place</label><input id="cfs_mplace" value="${r.miller_place||''}"></div>
+      <div class="fgrp"><label>Miller Invoice No.</label><input id="cfs_minvno" value="${r.miller_invoice_no||''}"></div>
+      <div class="fgrp"><label>Miller Invoice Date</label><input type="date" id="cfs_minvdate" value="${r.miller_invoice_date||today()}"></div>
+      ${msec('Truck / Vehicle Details')}
+      <div class="fgrp"><label>Vehicle No.</label><input id="cfs_vehicle" value="${r.vehicle_no||''}"></div>
+      <div class="fgrp"><label>Truck Date</label><input type="date" id="cfs_truckdate" value="${r.truck_date||today()}"></div>
+      <div class="fgrp"><label>Total Bags</label><input type="number" id="cfs_bags" value="${r.total_bags||''}" oninput="calcCfsAmount()"></div>
+      <div class="fgrp"><label>Qty (MT)</label><input type="number" id="cfs_qty" value="${r.qty_mt||''}" oninput="calcCfsAmount()"></div>
+      <div class="fgrp"><label>Rate (INR/MT)</label><input type="number" id="cfs_rate" value="${r.rate_inr||''}" oninput="calcCfsAmount()"></div>
+      <div class="fgrp"><label>Amount (INR) (auto)</label><div id="cfs_amount" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green)">${r.amount_inr?'₹'+fmt(r.amount_inr):'—'}</div></div>
+      ${msec('PSI Link')}
+      <div class="fgrp"><label>Linked PSI</label>
+        <select id="cfs_psi" onchange="checkPsiLimit()">
+          <option value="">— No PSI linked —</option>
+          ${S.recs.psi.map(p=>`<option value="${p.id}" ${r.psi_id===p.id?' selected':''}>${p.id} · ${p.miller_name||'—'} · Approved: ${fmtN(p.qty_approved)} MT · Available: ${fmtN((p.qty_approved||0)-(p.qty_dispatched||0))} MT</option>`).join('')}
+        </select>
+      </div>
+      <div id="psi_flag_row" class="fgrp full" style="display:none">
+        <div style="background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--red)">
+          ⚠ PSI Limit Warning: This dispatch quantity exceeds the approved PSI quantity. Next PSI required before dispatching this truck.
+        </div>
+      </div>
+      ${msec('CFS Receipt Details')}
+      <div class="fgrp"><label>Receiving Bags at CFS</label><input type="number" id="cfs_rcvbags" value="${r.receiving_bags||''}"></div>
+      <div class="fgrp"><label>CFS Receipt Date</label><input type="date" id="cfs_cfsdate" value="${r.cfs_date||''}"></div>
+      <div class="fgrp"><label>CFS Name</label><input id="cfs_cfsname" value="${r.cfs_name||''}"></div>
+      <div class="fgrp"><label>Is Partial Load?</label><select id="cfs_part">${sel(['No','Yes'],r.is_part?'Yes':'No')}</select></div>
+      ${msec('Weight Reconciliation (Factory vs CFS)')}
+      <div class="fgrp"><label>Factory Gross (MT)</label><input type="number" step="0.001" id="cfs_fgross" value="${r.factory_gross||''}" oninput="calcWeightDiff()"></div>
+      <div class="fgrp"><label>Factory Tare (MT)</label><input type="number" step="0.001" id="cfs_ftare" value="${r.factory_tare||''}" oninput="calcWeightDiff()"></div>
+      <div class="fgrp"><label>Factory Net (MT) (auto)</label><div id="cfs_fnet" style="padding:6px 9px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green)">${r.factory_net?fmtN(r.factory_net)+' MT':'—'}</div></div>
+      <div class="fgrp"><label>CFS Gross (MT)</label><input type="number" step="0.001" id="cfs_cgross" value="${r.cfs_gross||''}" oninput="calcWeightDiff()"></div>
+      <div class="fgrp"><label>CFS Tare (MT)</label><input type="number" step="0.001" id="cfs_ctare" value="${r.cfs_tare||''}" oninput="calcWeightDiff()"></div>
+      <div class="fgrp"><label>CFS Net (MT) (auto)</label><div id="cfs_cnet" style="padding:6px 9px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--green)">${r.cfs_net?fmtN(r.cfs_net)+' MT':'—'}</div></div>
+      <div class="fgrp"><label>Weight Difference (CFS−Factory)</label><div id="cfs_wdiff" style="padding:6px 9px;font-family:var(--mono);font-size:12px;font-weight:600">${r.factory_net&&r.cfs_net?fmtN(r.cfs_net-r.factory_net)+' MT':'—'}</div></div>
+      <div class="fgrp full"><label>Remarks</label><textarea id="cfs_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit CFS Truck':'Add CFS Truck Dispatch',body,id?`saveCfsTruck('${id}')`:'saveCfsTruck()',true));
+  setTimeout(()=>{calcCfsAmount();calcWeightDiff();checkPsiLimit();},80);
+}
+function calcCfsAmount(){
+  const qty=parseFloat(document.getElementById('cfs_qty')?.value)||0;
+  const rate=parseFloat(document.getElementById('cfs_rate')?.value)||0;
+  const el=document.getElementById('cfs_amount');
+  if(el&&qty&&rate)el.textContent='₹'+fmt(qty*rate);
+}
+function calcWeightDiff(){
+  const fg=parseFloat(document.getElementById('cfs_fgross')?.value)||0;
+  const ft=parseFloat(document.getElementById('cfs_ftare')?.value)||0;
+  const cg=parseFloat(document.getElementById('cfs_cgross')?.value)||0;
+  const ct=parseFloat(document.getElementById('cfs_ctare')?.value)||0;
+  const fn2=fg-ft,cn=cg-ct,diff=cn-fn2;
+  const fnel=document.getElementById('cfs_fnet');
+  const cnel=document.getElementById('cfs_cnet');
+  const dnel=document.getElementById('cfs_wdiff');
+  if(fnel&&fg)fnel.textContent=fn2.toFixed(3)+' MT';
+  if(cnel&&cg)cnel.textContent=cn.toFixed(3)+' MT';
+  if(dnel&&(fg||cg)){dnel.textContent=(diff>0?'+':'')+diff.toFixed(3)+' MT';dnel.style.color=Math.abs(diff)<0.1?'var(--green)':Math.abs(diff)<0.3?'var(--amber)':'var(--red)';}
+}
+function checkPsiLimit(){
+  const psiId=fv('cfs_psi');
+  const qty=parseFloat(fv('cfs_qty'))||0;
+  const flagRow=document.getElementById('psi_flag_row');
+  if(!psiId||!qty||!flagRow){if(flagRow)flagRow.style.display='none';return;}
+  const psi=S.recs.psi.find(p=>p.id===psiId);
+  if(!psi){flagRow.style.display='none';return;}
+  const avail=(psi.qty_approved||0)-(psi.qty_dispatched||0);
+  flagRow.style.display=qty>avail?'block':'none';
+}
+async function saveCfsTruck(id){
+  const fg=parseFloat(fv('cfs_fgross'))||0,ft=parseFloat(fv('cfs_ftare'))||0;
+  const cg=parseFloat(fv('cfs_cgross'))||0,ct=parseFloat(fv('cfs_ctare'))||0;
+  const qty=parseFloat(fv('cfs_qty'))||0,rate=parseFloat(fv('cfs_rate'))||0;
+  const data={
+    invoice_ref:fv('cfs_invref'),brand:fv('cfs_brand'),billing_party:fv('cfs_billing'),
+    miller_name:fv('cfs_miller'),miller_place:fv('cfs_mplace'),
+    miller_invoice_no:fv('cfs_minvno'),miller_invoice_date:fv('cfs_minvdate')||null,
+    vehicle_no:fv('cfs_vehicle'),truck_date:fv('cfs_truckdate')||null,
+    total_bags:parseInt(fv('cfs_bags'))||null,qty_mt:qty||null,rate_inr:rate||null,
+    amount_inr:qty&&rate?qty*rate:null,
+    receiving_bags:parseInt(fv('cfs_rcvbags'))||null,
+    cfs_date:fv('cfs_cfsdate')||null,cfs_name:fv('cfs_cfsname'),
+    is_part:fv('cfs_part')==='Yes',
+    factory_gross:fg||null,factory_tare:ft||null,factory_net:fg?fg-ft:null,
+    cfs_gross:cg||null,cfs_tare:ct||null,cfs_net:cg?cg-ct:null,
+    psi_id:fv('cfs_psi')||null,linked_contract_no:fv('cfs_contract'),
+    linked_contract_id:_cfsSelC||null,remarks:fv('cfs_rem')
+  };
+  if(!id)data.id=uid('CFS');
+  _cfsSelC=null;_reRenderFn=null;
+  await saveRec('cfs_trucks',data,id||null);
+}
+
+
 // ── Page registry ─────────────────────────────────────────
 const pages={
   dashboard:{title:'Dashboard',render:renderDash},
@@ -1083,9 +1656,9 @@ const pages={
   containers:{title:'Container Bookings',render:renderContainers},
   transporters:{title:'Transporters & Plot',render:renderTransporters},
   loading:{title:'Loading Assignment',render:renderLoading},
-  surveyor_ef:{title:'Surveyor Report — Ex-Factory',render:()=>placeholderPage('Surveyor Report — Ex-Factory','🔬','Survey results, pass/fail flow, weighment and vendor bill verification for ex-factory stuffing.')},
-  psi:{title:'PSI — Pre-Shipment Inspection',render:()=>placeholderPage('PSI — Pre-Shipment Inspection','🧪','Pre-shipment quality inspection at miller location. Qty-based dispatch flag system.')},
-  cfs_trucks:{title:'CFS Truck Dispatch & Receipt',render:()=>placeholderPage('CFS Truck Dispatch & Receipt','🚛','Track miller truck dispatches to CFS. Factory vs CFS weight reconciliation. PSI qty flag.')},
+  surveyor_ef:{title:'Surveyor Report — Ex-Factory',render:renderSurveyorEf},
+  psi:{title:'PSI — Pre-Shipment Inspection',render:renderPsi},
+  cfs_trucks:{title:'CFS Truck Dispatch & Receipt',render:renderCfsTrucks},
   cfs_stuffing:{title:'CFS Stuffing & Container Allocation','render':()=>placeholderPage('CFS Stuffing & Container Allocation','📦','Container stuffing at CFS. DSR tracking. Stock at CFS running balance.')},
   invoices:{title:'Invoice & Packing List',render:()=>placeholderPage('Invoice & Packing List','🧾','Flexible invoice creation. Multiple invoices per contract. Packing list with seal numbers. Cut-off date tracking.')},
   customs:{title:'Customs & Documentation',render:()=>placeholderPage('Customs & Documentation','🛃','First check copy, LEO, Phyto, seal numbers, port entry vehicle numbers per container.')},
