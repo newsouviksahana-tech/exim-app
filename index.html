@@ -201,6 +201,40 @@ textarea{resize:vertical;min-height:54px}
 .vbtn.filled{border-color:rgba(52,211,153,.35);color:var(--green);font-weight:500}
 .sovr{font-size:9px;color:var(--txt3);cursor:pointer;display:flex;align-items:center;gap:3px;margin-top:2px}
 .sovr:hover{color:var(--blue)}
+
+/* AUTH */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{background:var(--surf);border:1px solid var(--bdr2);border-radius:14px;padding:32px 28px;width:380px;max-width:95vw}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo h1{font-size:20px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
+.login-logo p{font-size:12px;color:var(--txt3)}
+.login-field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.login-field label{font-size:11px;color:var(--txt3);font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+.login-field input{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--txt);outline:none}
+.login-field input:focus{border-color:var(--blue)}
+.login-btn{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;margin-top:4px}
+.login-btn:hover{background:var(--blue2)}
+.login-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:20px;background:var(--surf2);border:1px solid var(--bdr)}
+.user-chip-avatar{width:22px;height:22px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff;flex-shrink:0}
+.user-chip-name{font-size:11px;color:var(--txt2);font-weight:500}
+.user-chip-role{font-size:9px;color:var(--txt3)}
+/* REPORT */
+.report-wrap{display:flex;flex-direction:column;gap:10px}
+.report-contract{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
+.rc-hdr{padding:10px 14px;background:var(--surf2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.rc-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue)}
+.rc-buyer{font-size:12px;color:var(--txt2)}
+.rc-body{padding:12px 14px}
+.inv-track{display:flex;flex-direction:column;gap:6px}
+.inv-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:var(--surf2);border:1px solid var(--bdr)}
+.inv-no{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);min-width:130px}
+.inv-stages{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.stage-dot{display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500}
+.stage-done{background:rgba(52,211,153,.1);color:var(--green)}
+.stage-active{background:rgba(79,156,249,.1);color:var(--blue)}
+.stage-pending{background:var(--surf3);color:var(--txt3)}
+
 </style>
 </head>
 <body>
@@ -211,11 +245,13 @@ textarea{resize:vertical;min-height:54px}
 const SUPA_URL='https://wktdubbvddynyigxmoyb.supabase.co';
 const SUPA_KEY='sb_publishable_-BjRXe1NkSTPQKQoRWDQVQ_Uu5CNZFX';
 const{createClient}=supabase;
-const db=createClient(SUPA_URL,SUPA_KEY);
+const db=createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+let currentUser=null,currentProfile=null;
 
 // ── State ──────────────────────────────────────────────────
 const TABLES=['orders','purchases','containers','transporters','loading','surveyor_ef',
-  'psi','cfs_trucks','cfs_stuffing','invoices','customs','shipping','payments','rates','product_specs'];
+  'psi','cfs_trucks','cfs_stuffing','invoices','customs','shipping','payments','rates','product_specs',
+  'user_profiles','companies','audit_log'];
 
 let S={
   page:'dashboard',
@@ -239,6 +275,12 @@ async function loadTable(t){
 async function loadAll(){
   S.dbStatus='loading';renderSidebar();
   await Promise.all(TABLES.map(t=>loadTable(t)));
+  // also load user profiles and companies for master admin
+  if(currentProfile?.role==='master_admin'||currentProfile?.role==='admin'){
+    await loadTable('user_profiles');await loadTable('companies');await loadTable('audit_log');
+  } else {
+    await loadTable('companies');
+  }
   rebuildMasters();S.dbStatus='ok';renderAll();
 }
 function rebuildMasters(){
@@ -249,9 +291,27 @@ function rebuildMasters(){
 }
 async function saveRec(table,data,id){
   try{
+    // attach created_by/updated_by if column exists
+    if(currentUser){
+      if(!id)data.created_by=currentUser.id;
+      data.updated_by=currentUser.id;
+    }
     const res=id?await db.from(table).update(data).eq('id',id).select()
                 :await db.from(table).insert(data).select();
     if(res.error)throw res.error;
+    // audit log
+    if(currentUser){
+      await db.from('audit_log').insert({
+        user_id:currentUser.id,
+        user_name:currentProfile?.full_name||currentUser.email,
+        user_email:currentUser.email,
+        table_name:table,
+        record_id:data.id||id||'—',
+        action:id?'UPDATE':'INSERT',
+        new_data:data,
+        changed_at:new Date().toISOString()
+      });
+    }
     await loadTable(table);rebuildMasters();renderAll();closeModal();toast('Saved');
   }catch(e){toast(e.message,'e');console.error(e);}
 }
@@ -454,6 +514,10 @@ const NAV=[
   {grp:'Masters'},
   {id:'rates',label:'Master Rates',color:'#5a6484'},
   {id:'product_specs',label:'Product Specs',color:'#5a6484'},
+  {grp:'Reports & Admin'},
+  {id:'report',label:'Contract Status Report',color:'#34d399'},
+  {id:'audit_log',label:'Audit Log',color:'#a78bfa'},
+  {id:'user_management',label:'User Management',color:'#f472b6'},
 ];
 
 function renderSidebar(){
@@ -485,7 +549,10 @@ function renderAll(){
     <div class="main">
       <div class="topbar">
         <h2>${pc.title}${Array.isArray(cnt)?`<span class="pbadge">${cnt.length}</span>`:''}</h2>
-        <button class="ghost sm" onclick="loadAll()">↻ Sync</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="ghost sm" onclick="loadAll()">↻ Sync</button>
+          ${renderUserChip()}
+        </div>
       </div>
       <div class="content" id="ca">${pc.render()}</div>
     </div>
@@ -2609,10 +2676,345 @@ const pages={
   payments:{title:'Payment Tracking',render:renderPayments},
   rates:{title:'Master Rates',render:renderRates},
   product_specs:{title:'Product Specs',render:renderProductSpecs},
+  report:{title:'Contract Status Report',render:renderReport},
+  audit_log:{title:'Audit Log',render:renderAuditLog},
+  user_management:{title:'User Management',render:renderUserManagement},
 };
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-renderAll();loadAll();
+initApp();
+
+// ══════════════════════════════════════════════════════════
+// AUTH — LOGIN / LOGOUT / USER MANAGEMENT
+// ══════════════════════════════════════════════════════════
+async function initApp(){
+  const{data:{session}}=await db.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    await loadProfile();
+    renderAll();loadAll();
+  } else {
+    showLogin();
+  }
+  db.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session){
+      currentUser=session.user;
+      await loadProfile();
+      renderAll();loadAll();
+    } else if(event==='SIGNED_OUT'){
+      currentUser=null;currentProfile=null;
+      showLogin();
+    }
+  });
+}
+
+async function loadProfile(){
+  try{
+    const{data}=await db.from('user_profiles').select('*').eq('id',currentUser.id).single();
+    currentProfile=data;
+  }catch(e){currentProfile=null;}
+}
+
+function showLogin(){
+  document.getElementById('root').innerHTML=`
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <h1>ExIm Manager</h1>
+        <p>Export-Import Management System</p>
+      </div>
+      <div class="login-err" id="login-err"></div>
+      <div class="login-field"><label>Email Address</label><input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="login-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="login-btn" onclick="doLogin()">Sign In</button>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--txt3)">Contact your administrator to reset your password</div>
+    </div>
+  </div>`;
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-email')?.value?.trim();
+  const pass=document.getElementById('login-pass')?.value;
+  const errEl=document.getElementById('login-err');
+  if(!email||!pass){if(errEl){errEl.textContent='Please enter email and password.';errEl.style.display='block';}return;}
+  const{error}=await db.auth.signInWithPassword({email,password:pass});
+  if(error){if(errEl){errEl.textContent=error.message;errEl.style.display='block';}}
+}
+
+async function doLogout(){
+  if(!confirm('Sign out?'))return;
+  await db.auth.signOut();
+}
+
+function renderUserChip(){
+  if(!currentProfile&&!currentUser)return'';
+  const name=currentProfile?.full_name||currentUser?.email||'User';
+  const role=currentProfile?.role||'user';
+  const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  return`<div class="user-chip">
+    <div class="user-chip-avatar">${initials}</div>
+    <div><div class="user-chip-name">${name}</div><div class="user-chip-role">${role}</div></div>
+    <button class="ghost xs" onclick="doLogout()" style="margin-left:4px;color:var(--txt3)">↩</button>
+  </div>`;
+}
+
+// ── USER MANAGEMENT (master admin only) ───────────────────
+function renderUserManagement(){
+  if(currentProfile?.role!=='master_admin'){
+    return`<div class="empty"><strong>Access Denied</strong>Only master admins can manage users.</div>`;
+  }
+  const profiles=S.recs.user_profiles||[];
+  const companies=S.recs.companies||[];
+  const ALL_MODULES=['Orders & Contracts','Raw Material Purchase','Container Bookings','Transporters & Plot',
+    'Loading Assignment','Surveyor Report','PSI','CFS Truck Dispatch','CFS Stuffing',
+    'Invoice & Packing List','Customs & Documentation','Shipping & BL','Payment Tracking','Master Rates'];
+  return`
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+    <button class="pri" onclick="openAddUserModal()">+ Add User</button>
+    <div style="font-size:11px;color:var(--txt3);margin-left:4px">${profiles.length} users registered</div>
+  </div>
+  <div class="card">`+tbl(profiles,
+    ['Name','Email','Role','Company','Modules Access','Active','Actions'],
+    r=>{
+      let mods=[];try{mods=JSON.parse(r.module_access||'[]');}catch(e){}
+      return`<tr>
+        <td><strong>${r.full_name||'—'}</strong></td>
+        <td class="mono" style="font-size:11px;color:var(--txt2)">${r.email||'—'}</td>
+        <td>${bdg(r.role||'user')}</td>
+        <td>${r.company||'—'}</td>
+        <td style="font-size:11px;color:var(--txt2)">${mods.length?mods.join(', '):'All'}</td>
+        <td>${bdg(r.active!==false?'Yes':'No')}</td>
+        <td><div class="acell">
+          <button class="sm" onclick="openEditUserModal('${r.id}')">Edit</button>
+          <button class="sm dan" onclick="deactivateUser('${r.id}')">Deactivate</button>
+        </div></td>
+      </tr>`;
+    },
+    'No users found. Add users to get started.'
+  )+`</div>`;
+}
+
+function openAddUserModal(){
+  openUserModal(null);
+}
+function openEditUserModal(uid){
+  openUserModal(uid);
+}
+function openUserModal(uid){
+  const r=uid?(S.recs.user_profiles||[]).find(p=>p.id===uid):{};
+  const companies=S.recs.companies||[];
+  const ALL_MODULES=['Orders & Contracts','Raw Material Purchase','Container Bookings','Transporters & Plot',
+    'Loading Assignment','Surveyor Report','PSI','CFS Truck Dispatch','CFS Stuffing',
+    'Invoice & Packing List','Customs & Documentation','Shipping & BL','Payment Tracking','Master Rates'];
+  let selMods=[];try{selMods=JSON.parse(r.module_access||'[]');}catch(e){}
+  const body=`<div class="fg">
+    ${msec('User Details')}
+    <div class="fgrp"><label>Full Name</label><input id="usr_name" value="${r.full_name||''}"></div>
+    <div class="fgrp"><label>Email (used for login)</label><input type="email" id="usr_email" value="${r.email||''}"></div>
+    ${!uid?`<div class="fgrp"><label>Password (set initial)</label><input type="password" id="usr_pass" placeholder="Min 6 characters"></div>`:''}
+    <div class="fgrp"><label>Role</label><select id="usr_role">${sel(['user','admin','master_admin'],r.role||'user')}</select></div>
+    <div class="fgrp"><label>Company</label><select id="usr_company"><option value="">All Companies</option>${companies.map(c=>`<option value="${c.name}"${r.company===c.name?' selected':''}>${c.name}</option>`).join('')}</select></div>
+    ${msec('Module Access (leave all unchecked = full access)')}
+    <div class="fgrp full" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      ${ALL_MODULES.map(m=>`
+        <label style="display:flex;align-items:center;gap:7px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:7px 10px;cursor:pointer;font-size:12px;color:var(--txt);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="mod_${m.replace(/ /g,'_')}" ${selMods.includes(m)?'checked':''} style="width:auto;border:none;background:none">
+          ${m}
+        </label>`).join('')}
+    </div>
+  </div>`;
+  openModal(mw(uid?'Edit User':'Add New User',body,uid?`saveUser('${uid}')`:'saveUser(null)'));
+}
+async function saveUser(uid){
+  const ALL_MODULES=['Orders & Contracts','Raw Material Purchase','Container Bookings','Transporters & Plot',
+    'Loading Assignment','Surveyor Report','PSI','CFS Truck Dispatch','CFS Stuffing',
+    'Invoice & Packing List','Customs & Documentation','Shipping & BL','Payment Tracking','Master Rates'];
+  const selMods=ALL_MODULES.filter(m=>document.getElementById('mod_'+m.replace(/ /g,'_'))?.checked);
+  if(!uid){
+    // Create new auth user then profile
+    const email=fv('usr_email');const pass=fv('usr_pass');
+    if(!email||!pass){toast('Email and password required','e');return;}
+    const{data:authData,error}=await db.auth.admin?.createUser({email,password:pass,email_confirm:true})
+      ||await db.auth.signUp({email,password:pass});
+    if(error){toast(error.message,'e');return;}
+    const newUid=authData?.user?.id;
+    if(newUid){
+      await db.from('user_profiles').insert({id:newUid,full_name:fv('usr_name'),email,role:fv('usr_role'),company:fv('usr_company'),module_access:JSON.stringify(selMods),active:true});
+    }
+    toast('User created — they can now log in');
+    closeModal();await loadTable('user_profiles');renderAll();
+  } else {
+    const{error}=await db.from('user_profiles').update({full_name:fv('usr_name'),email:fv('usr_email'),role:fv('usr_role'),company:fv('usr_company'),module_access:JSON.stringify(selMods)}).eq('id',uid);
+    if(error){toast(error.message,'e');return;}
+    toast('User updated');closeModal();await loadTable('user_profiles');renderAll();
+  }
+}
+async function deactivateUser(uid){
+  if(!confirm('Deactivate this user? They will not be able to log in.'))return;
+  await db.from('user_profiles').update({active:false}).eq('id',uid);
+  await loadTable('user_profiles');renderAll();toast('User deactivated','w');
+}
+
+// ── AUDIT LOG VIEWER ──────────────────────────────────────
+function renderAuditLog(){
+  if(currentProfile?.role!=='master_admin'&&currentProfile?.role!=='admin'){
+    return`<div class="empty"><strong>Access Denied</strong>Admins and master admins only.</div>`;
+  }
+  const logs=(S.recs.audit_log||[]).slice(0,200);
+  return`<div class="sbar"><input placeholder="Search user, table, record…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderAuditLog()"></div>
+  <div class="card">`+tbl(
+    logs.filter(l=>!S.search||[l.user_name,l.user_email,l.table_name,l.record_id].join(' ').toLowerCase().includes(S.search.toLowerCase())),
+    ['Time','User','Email','Action','Module / Table','Record ID'],
+    r=>`<tr>
+      <td style="font-size:11px;color:var(--txt3);white-space:nowrap">${r.changed_at?new Date(r.changed_at).toLocaleString('en-IN'):'—'}</td>
+      <td><strong>${r.user_name||'—'}</strong></td>
+      <td class="mono" style="font-size:11px;color:var(--txt2)">${r.user_email||'—'}</td>
+      <td>${bdg(r.action||'—')}</td>
+      <td><span class="badge bb">${r.table_name||'—'}</span></td>
+      <td class="mono" style="font-size:11px">${r.record_id||'—'}</td>
+    </tr>`,
+    'No audit log entries yet.'
+  )+`</div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// N. CONTRACT STATUS SNAPSHOT REPORT
+// ══════════════════════════════════════════════════════════
+let _rptExporter='',_rptContracts=[];
+
+function renderReport(){
+  const exporters=S.masters.exporters;
+  const companies=S.recs.companies||[];
+  return`
+  <div class="card" style="margin-bottom:14px">
+    <div class="ctitle">Report Filters</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:flex-end">
+      <div class="fgrp">
+        <label>Exporter Company</label>
+        <select id="rpt_exporter" onchange="_rptExporter=this.value">
+          <option value="">All Exporters</option>
+          ${exporters.map(e=>`<option value="${e}"${_rptExporter===e?' selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fgrp">
+        <label>Contract Status</label>
+        <select id="rpt_status">
+          <option value="">All Contracts</option>
+          <option value="Confirmed">Confirmed Only</option>
+          <option value="Pending">Pending Only</option>
+        </select>
+      </div>
+      <div class="fgrp">
+        <label>Payment Status</label>
+        <select id="rpt_pay">
+          <option value="">All</option>
+          <option value="unrealized">Payment Not Realized</option>
+          <option value="Paid">Fully Paid</option>
+        </select>
+      </div>
+      <button class="pri" onclick="generateReport()" style="height:fit-content">Generate Report</button>
+    </div>
+  </div>
+  <div id="report-output"></div>`;
+}
+
+function generateReport(){
+  const exporter=fv('rpt_exporter');
+  const status=fv('rpt_status');
+  const payFilter=fv('rpt_pay');
+  const el=document.getElementById('report-output');if(!el)return;
+
+  let contracts=S.recs.orders.filter(o=>o.signed_contract==='Yes');
+  if(exporter)contracts=contracts.filter(o=>o.exporter===exporter);
+  if(status)contracts=contracts.filter(o=>(status==='Confirmed'?o.signed_contract==='Yes':o.signed_contract!=='Yes'));
+
+  if(!contracts.length){el.innerHTML=`<div class="empty"><strong>No contracts found</strong>Try adjusting your filters.</div>`;return;}
+
+  const html=contracts.map(contract=>{
+    const invoices=S.recs.invoices.filter(i=>i.contract_no===contract.contract_no||i.linked_contract_id===contract.id);
+    const purchases=S.recs.purchases.filter(p=>p.linked_contract_no===contract.contract_no||p.linked_contract_id===contract.id);
+    const totalPurchased=purchases.reduce((s,p)=>s+(Number(p.qty)||0),0);
+    const pendingPurchase=contract.qty-(totalPurchased||0);
+
+    // Filter by payment
+    if(payFilter==='unrealized'){
+      const hasUnpaid=invoices.some(i=>i.payment_status!=='Paid')||invoices.length===0;
+      if(!hasUnpaid)return'';
+    }
+    if(payFilter==='Paid'){
+      const allPaid=invoices.length>0&&invoices.every(i=>i.payment_status==='Paid');
+      if(!allPaid)return'';
+    }
+
+    const invRows=invoices.length?invoices.map(inv=>{
+      // Determine stage for each invoice
+      const loading=S.recs.loading.find(l=>l.booking_ref&&S.recs.containers.find(c=>c.linked_contract_no===contract.contract_no&&c.booking_ref===l.booking_ref));
+      const surveyor=S.recs.surveyor_ef.find(s=>s.assignment_id&&loading?.assignment_id===s.assignment_id);
+      const cfsTrucks=S.recs.cfs_trucks.filter(t=>t.invoice_ref===inv.invoice_no);
+      const cfsStuffing=S.recs.cfs_stuffing.find(s=>s.export_invoice_no===inv.invoice_no);
+      const customs=S.recs.customs.find(c=>c.invoice_no===inv.invoice_no);
+      const shipping=S.recs.shipping.find(s=>s.invoice_no===inv.invoice_no);
+      const payment=S.recs.payments.find(p=>p.invoice_no===inv.invoice_no);
+
+      const stages=[
+        {name:'Purchase',done:purchases.length>0,active:purchases.length>0&&pendingPurchase>0},
+        {name:'Loading',done:!!surveyor?.actual_loaded_qty,active:!!loading&&!surveyor?.actual_loaded_qty},
+        {name:'CFS Trucks',done:cfsTrucks.length>0&&!!cfsStuffing,active:cfsTrucks.length>0&&!cfsStuffing},
+        {name:'Stuffing',done:!!cfsStuffing,active:false},
+        {name:'Invoice',done:!!inv.invoice_no,active:true},
+        {name:'Customs',done:customs?.status==='Gate-In Done'||customs?.status==='Loaded on Vessel',active:!!customs&&customs.status!=='Gate-In Done'},
+        {name:'Shipped',done:!!shipping?.atd,active:!!shipping&&!shipping.atd},
+        {name:'BL Done',done:!!shipping?.bl_received,active:!!shipping&&!shipping.bl_received},
+        {name:'Payment',done:inv.payment_status==='Paid',active:inv.payment_status==='Partial'},
+      ];
+
+      return`<div class="inv-row">
+        <div class="inv-no">${inv.invoice_no||inv.id}</div>
+        <div style="font-size:11px;color:var(--txt3);min-width:70px">${inv.currency||'USD'} ${fmt(inv.invoice_value)}</div>
+        <div class="inv-stages">
+          ${stages.map(st=>`<div class="stage-dot ${st.done?'stage-done':st.active?'stage-active':'stage-pending'}">
+            ${st.done?'✓':st.active?'→':'○'} ${st.name}
+          </div>`).join('')}
+        </div>
+        <div style="flex-shrink:0">${bdg(inv.payment_status||'Unpaid')}</div>
+      </div>`;
+    }).join(''):
+    `<div class="inv-row" style="color:var(--txt3)">
+      <div class="inv-no" style="color:var(--txt3)">No invoices yet</div>
+      <div class="inv-stages">
+        ${purchases.length?`<div class="stage-dot stage-done">✓ Purchase (${fmtN(totalPurchased)} MT)</div>`:'<div class="stage-dot stage-pending">○ Purchase Pending</div>'}
+        ${pendingPurchase>0?`<div class="stage-dot stage-active">→ ${fmtN(pendingPurchase)} MT pending</div>`:''}
+      </div>
+    </div>`;
+
+    return`<div class="report-contract">
+      <div class="rc-hdr">
+        <div>
+          <span class="rc-id">${contract.contract_no||contract.id}</span>
+          <span class="rc-buyer" style="margin-left:10px">${contract.buyer||'—'}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;color:var(--txt3)">${contract.product||'—'} · ${fmtN(contract.qty)} MT · ${contract.currency||'USD'} ${fmt(contract.unit_price)}</span>
+          ${bdg(contract.signed_contract==='Yes'?'Confirmed':'Pending')}
+          <span style="font-size:10px;color:var(--txt3)">${invoices.length} invoice${invoices.length!==1?'s':''}</span>
+        </div>
+      </div>
+      <div class="rc-body">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+          <div style="font-size:11px"><span style="color:var(--txt3)">Contract Qty:</span> <strong style="font-family:var(--mono)">${fmtN(contract.qty)} MT</strong></div>
+          <div style="font-size:11px"><span style="color:var(--txt3)">Purchased:</span> <strong style="font-family:var(--mono);color:var(--green)">${fmtN(totalPurchased)} MT</strong></div>
+          <div style="font-size:11px"><span style="color:var(--txt3)">Pending Purchase:</span> <strong style="font-family:var(--mono);color:${pendingPurchase>0?'var(--amber)':'var(--green)'}">${fmtN(pendingPurchase)} MT</strong></div>
+          <div style="font-size:11px"><span style="color:var(--txt3)">Bag Marking:</span> <strong style="font-family:var(--mono);font-size:10px">${contract.bag_marking||'—'}</strong></div>
+        </div>
+        <div class="inv-track">${invRows}</div>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  el.innerHTML=html||`<div class="empty"><strong>No results</strong>No contracts match your filter criteria.</div>`;
+}
+
+
 </script>
 </body>
 </html>
