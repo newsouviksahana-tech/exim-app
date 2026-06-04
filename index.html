@@ -3,71 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ExIm Manager v3</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>ExIm Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#0d1117;--surf:#161b27;--surf2:#1c2235;--surf3:#222840;
   --bdr:#2a3050;--bdr2:#353d5c;
   --txt:#e2e8f0;--txt2:#8892b0;--txt3:#4a5580;
-  --blue:#4f9cf9;--blue2:#3b82f6;--green:#34d399;--amber:#fbbf24;--red:#f87171;--purple:#a78bfa;--cyan:#22d3ee;
+  --blue:#4f9cf9;--blue2:#3b82f6;--green:#34d399;--amber:#fbbf24;
+  --red:#f87171;--purple:#a78bfa;--cyan:#22d3ee;--pink:#f472b6;
   --r:10px;--font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--txt);font-size:13px}
-::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--surf)}
-::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
 
-/* APP SHELL */
+/* APP */
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:220px;min-width:220px;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
-.logo{padding:18px 16px 12px;border-bottom:1px solid var(--bdr)}
-.logo h1{font-size:14px;font-weight:700;letter-spacing:-.3px}
-.logo p{font-size:10px;color:var(--txt3);margin-top:3px;font-family:var(--mono)}
-.nav-sec{padding:14px 12px 3px;font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.12em;text-transform:uppercase}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;border-radius:7px;margin:1px 6px;font-size:12px;color:var(--txt2);transition:all .12s}
-.nav-item:hover{background:var(--surf2);color:var(--txt)}
-.nav-item.active{background:rgba(79,156,249,.13);color:var(--blue);font-weight:600}
-.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.db-pill{margin:8px 10px 4px;padding:6px 10px;border-radius:7px;font-size:10px;font-family:var(--mono);display:flex;align-items:center;gap:6px;border:1px solid}
-.db-ok{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.2);color:var(--green)}
-.db-err{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.2);color:var(--red)}
-.db-load{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.2);color:var(--amber)}
+
+/* SIDEBAR */
+.sidebar{width:224px;min-width:224px;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:16px 14px 10px;border-bottom:1px solid var(--bdr)}
+.logo h1{font-size:13px;font-weight:600;letter-spacing:-.2px}
+.logo p{font-size:10px;color:var(--txt3);margin-top:2px;font-family:var(--mono)}
+.db-pill{margin:8px 8px 2px;padding:5px 9px;border-radius:6px;font-size:10px;font-family:var(--mono);display:flex;align-items:center;gap:5px;border:1px solid}
+.dbok{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.2);color:var(--green)}
+.dberr{background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.2);color:var(--red)}
+.dbload{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.2);color:var(--amber)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+.pulse{width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+.spn{display:inline-block;width:10px;height:10px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+.nav-grp{padding:10px 8px 2px;font-size:9px;font-weight:600;color:var(--txt3);letter-spacing:.12em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;border-radius:6px;margin:1px 4px;font-size:12px;color:var(--txt2);transition:all .12s}
+.nav-item:hover{background:var(--surf2);color:var(--txt)}
+.nav-item.active{background:rgba(79,156,249,.12);color:var(--blue);font-weight:500}
+.ndot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.topbar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.topbar h2{font-size:15px;font-weight:600;letter-spacing:-.2px}
-.pbadge{font-size:9px;padding:2px 7px;border-radius:20px;background:var(--surf2);color:var(--txt3);margin-left:8px;font-family:var(--mono)}
-.content{flex:1;overflow-y:auto;padding:16px 18px}
+.topbar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h2{font-size:14px;font-weight:600;letter-spacing:-.2px}
+.pbadge{font-size:9px;padding:1px 6px;border-radius:20px;background:var(--surf2);color:var(--txt3);margin-left:7px;font-family:var(--mono)}
+.content{flex:1;overflow-y:auto;padding:14px 16px}
 
 /* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px}
-.kpi-lbl{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.kpi-val{font-size:26px;font-weight:700;font-family:var(--mono);letter-spacing:-1px}
-.blue{color:var(--blue)}.green{color:var(--green)}.amber{color:var(--amber)}.red{color:var(--red)}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 12px}
+.klbl{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.kval{font-size:22px;font-weight:600;font-family:var(--mono);letter-spacing:-1px}
 
 /* CARD */
-.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
-.card-ttl{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.ctitle{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
 
 /* TABLE */
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:7px 10px;background:var(--surf2);font-weight:500;font-size:10px;color:var(--txt3);border-bottom:1px solid var(--bdr);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
-td{padding:7px 10px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+th{text-align:left;padding:6px 9px;background:var(--surf2);font-weight:500;font-size:10px;color:var(--txt3);border-bottom:1px solid var(--bdr);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em}
+td{padding:6px 9px;border-bottom:1px solid var(--bdr);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.018)}
+tr:hover td{background:rgba(255,255,255,.016)}
 .mono{font-family:var(--mono);font-size:11px}
 
 /* BADGE */
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;font-family:var(--mono)}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;font-family:var(--mono)}
 .bg{background:rgba(52,211,153,.1);color:var(--green)}
 .bb{background:rgba(79,156,249,.1);color:var(--blue)}
 .ba{background:rgba(251,191,36,.1);color:var(--amber)}
@@ -77,98 +79,128 @@ tr:hover td{background:rgba(255,255,255,.018)}
 .bgr{background:var(--surf2);color:var(--txt3)}
 
 /* BUTTONS */
-button{cursor:pointer;border:1px solid var(--bdr2);background:var(--surf2);color:var(--txt2);border-radius:7px;padding:6px 12px;font-size:12px;font-family:var(--font);transition:all .12s;white-space:nowrap}
+button{cursor:pointer;border:1px solid var(--bdr2);background:var(--surf2);color:var(--txt2);border-radius:6px;padding:5px 11px;font-size:12px;font-family:var(--font);transition:all .12s;white-space:nowrap}
 button:hover{background:var(--bdr);color:var(--txt)}
 button.pri{background:var(--blue);color:#fff;border-color:transparent;font-weight:500}
 button.pri:hover{background:var(--blue2)}
-button.danger{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.2)}
-button.danger:hover{background:rgba(248,113,113,.2)}
-button.success{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.2)}
-button.success:hover{background:rgba(52,211,153,.2)}
-button.sm{padding:3px 9px;font-size:11px}
+button.suc{background:rgba(52,211,153,.12);color:var(--green);border-color:rgba(52,211,153,.25)}
+button.suc:hover{background:rgba(52,211,153,.2)}
+button.dan{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.2)}
+button.dan:hover{background:rgba(248,113,113,.2)}
 button.ghost{background:transparent;border-color:transparent;color:var(--txt3)}
 button.ghost:hover{background:var(--surf2);color:var(--txt)}
+button.sm{padding:3px 8px;font-size:11px}
+button.xs{padding:2px 6px;font-size:10px}
 
-/* SEARCH BAR */
-.sbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.sbar input,.sbar select{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:6px 10px;font-size:12px;font-family:var(--font);color:var(--txt);outline:none;max-width:260px}
+/* SEARCH */
+.sbar{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.sbar input,.sbar select{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;font-size:12px;font-family:var(--font);color:var(--txt);outline:none;max-width:260px}
 .sbar input:focus,.sbar select:focus{border-color:var(--blue)}
 .sbar input::placeholder{color:var(--txt3)}
 
-/* MAIN MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:40px 16px;overflow-y:auto;backdrop-filter:blur(6px)}
-.modal{background:var(--surf);border:1px solid var(--bdr2);border-radius:14px;width:640px;max-width:96vw;padding:24px;max-height:90vh;overflow-y:auto}
-.modal-lg{width:820px}
-.modal h3{font-size:15px;font-weight:700;margin-bottom:18px;letter-spacing:-.2px}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.fgrp{display:flex;flex-direction:column;gap:4px}
+/* MODAL */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:flex-start;justify-content:center;z-index:100;padding:40px 14px;overflow-y:auto;backdrop-filter:blur(4px)}
+.modal{background:var(--surf);border:1px solid var(--bdr2);border-radius:12px;width:620px;max-width:96vw;padding:20px;max-height:88vh;overflow-y:auto}
+.modal.lg{width:820px}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:16px;letter-spacing:-.2px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.fgrp{display:flex;flex-direction:column;gap:3px}
 .fgrp.full{grid-column:1/-1}
-.fgrp.third{grid-column:span 1}
-label{font-size:10px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.07em}
-.fgrp input,.fgrp select,.fgrp textarea{background:var(--surf2);border:1px solid var(--bdr);border-radius:7px;padding:7px 10px;font-size:12px;font-family:var(--font);color:var(--txt);width:100%;outline:none;transition:border .12s}
+label{font-size:10px;color:var(--txt3);font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+.fgrp input,.fgrp select,.fgrp textarea{background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;padding:6px 9px;font-size:12px;font-family:var(--font);color:var(--txt);width:100%;outline:none;transition:border .12s}
 .fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--blue)}
-.fgrp input.auto-filled{border-color:rgba(52,211,153,.4);color:var(--green)}
+.fgrp input.af{border-color:rgba(52,211,153,.4);color:var(--green)}
 .fgrp select option{background:var(--surf2)}
-textarea{resize:vertical;min-height:58px}
-.mac{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--bdr)}
-.sec{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;padding:14px 0 8px;border-bottom:1px solid var(--bdr);margin-bottom:12px;grid-column:1/-1}
+textarea{resize:vertical;min-height:54px}
+.mac{display:flex;justify-content:flex-end;gap:7px;margin-top:16px;padding-top:12px;border-top:1px solid var(--bdr)}
+.msec{font-size:9px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;padding:12px 0 6px;border-bottom:1px solid var(--bdr);grid-column:1/-1;margin-top:2px}
 
-/* QUERY WINDOW (popup within modal) */
-.qwin{background:var(--surf2);border:1px solid var(--bdr2);border-radius:10px;padding:14px;margin-bottom:14px}
-.qwin-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.qwin-title{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em}
-.qwin-search{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:5px 9px;font-size:11px;font-family:var(--font);color:var(--txt);outline:none;width:200px}
+/* QUERY WINDOW */
+.qwin{background:var(--surf2);border:1px solid var(--bdr2);border-radius:8px;padding:10px;margin-bottom:12px}
+.qwin-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.qwin-title{font-size:10px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em}
+.qwin-search{background:var(--surf);border:1px solid var(--bdr);border-radius:5px;padding:5px 8px;font-size:11px;font-family:var(--font);color:var(--txt);outline:none;width:200px}
 .qwin-search::placeholder{color:var(--txt3)}
-.qwin-list{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
-.qcard{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .12s}
-.qcard:hover{border-color:var(--blue);background:rgba(79,156,249,.06)}
-.qcard.selected{border-color:var(--green);background:rgba(52,211,153,.06)}
-.qcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
-.qcard-id{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue)}
-.qcard-status{font-size:10px}
-.qcard-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.qcard-tag{background:var(--surf2);border:1px solid var(--bdr);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--txt2)}
-.qcard-tag.hi{color:var(--amber)}
-.selected-pill{display:flex;align-items:center;gap:8px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:7px;padding:7px 12px;margin-top:8px}
-.selected-pill-txt{font-size:12px;color:var(--green);font-weight:500;flex:1}
-.selected-pill button{padding:2px 8px;font-size:10px}
-
-/* GROUPS */
-.groups-wrap{display:flex;flex-direction:column;gap:12px;margin-top:4px}
-.group-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
-.group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surf3);border-bottom:1px solid var(--bdr)}
-.group-hdr-left{display:flex;align-items:center;gap:8px}
-.group-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-.group-name{font-size:12px;font-weight:600;color:var(--txt)}
-.group-meta{font-size:10px;color:var(--txt3);margin-top:1px}
-.group-body{padding:14px}
-.group-rows{display:flex;flex-direction:column;gap:8px}
-.container-row{display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 1fr 1fr 80px 28px;gap:6px;align-items:center}
-.container-row input,.container-row select{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;font-family:var(--font);color:var(--txt);width:100%;outline:none}
-.container-row input:focus,.container-row select:focus{border-color:var(--blue)}
-.container-row input.auto{border-color:rgba(52,211,153,.3);color:var(--green)}
-.cr-lbl{font-size:9px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;text-align:center}
-.cr-hdrs{display:grid;grid-template-columns:1fr 1fr 80px 1fr 1fr 1fr 1fr 80px 28px;gap:6px;margin-bottom:4px}
-.add-row-btn{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--blue);cursor:pointer;padding:4px 0}
-.add-row-btn:hover{color:var(--green)}
-.vendor-select-btn{background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--txt2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s;text-align:left;width:100%}
-.vendor-select-btn:hover{border-color:var(--blue);color:var(--txt)}
-.vendor-select-btn.filled{border-color:rgba(52,211,153,.3);color:var(--green)}
+.qwin-search:focus{border-color:var(--blue)}
+.qwin-list{max-height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.qcard{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:9px 11px;cursor:pointer;transition:all .1s}
+.qcard:hover{border-color:var(--blue);background:rgba(79,156,249,.05)}
+.qcard.sel{border-color:var(--green);background:rgba(52,211,153,.06)}
+.qcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px}
+.qcard-id{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--blue)}
+.qcard-sub{font-size:11px;color:var(--txt2);margin-top:1px}
+.qtags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.qtag{background:var(--surf2);border:1px solid var(--bdr);border-radius:3px;padding:1px 6px;font-size:10px;color:var(--txt2)}
+.qtag.hi{color:var(--amber)}
+.qtag.ok{color:var(--green)}
+.bmark{display:flex;align-items:center;gap:5px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:6px;padding:4px 8px;margin-top:5px}
+.bmark-lbl{font-size:9px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.bmark-val{font-size:11px;font-weight:500;color:var(--amber);font-family:var(--mono)}
+.sel-pill{display:flex;align-items:center;gap:8px;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:6px;padding:6px 10px;margin-top:6px}
+.sel-pill-txt{font-size:11px;color:var(--green);font-weight:500;flex:1}
 
 /* MISC */
-.acell{display:flex;gap:4px}
+.acell{display:flex;gap:3px}
 .dok{color:var(--green);font-weight:500}
 .dbad{color:var(--red);font-weight:500}
-.empty{text-align:center;padding:36px;color:var(--txt3);line-height:1.8}
-.empty strong{display:block;font-size:14px;color:var(--txt2);margin-bottom:4px}
-.divider{height:1px;background:var(--bdr);margin:14px 0}
+.empty{text-align:center;padding:30px;color:var(--txt3);font-size:12px;line-height:1.8}
+.divider{height:1px;background:var(--bdr);margin:12px 0}
+.ref-strip{display:none;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.2);border-radius:7px;padding:8px 11px;grid-column:1/-1}
+.ref-strip b{font-size:11px;font-weight:500;color:var(--green);display:block;margin-bottom:2px}
+.ref-strip span{font-size:10px;color:var(--green);opacity:.8}
 
 /* TOAST */
-.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:10px;font-size:12px;z-index:9999;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.5);border:1px solid;animation:fadeUp .2s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.t-s{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:var(--green)}
-.t-e{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red)}
-.t-w{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:var(--amber)}
+.toast{position:fixed;bottom:18px;right:18px;padding:9px 15px;border-radius:9px;font-size:12px;z-index:9999;font-weight:500;border:1px solid;animation:fadeUp .2s ease}
+.ts{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:var(--green)}
+.te{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red)}
+.tw{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:var(--amber)}
+
+/* ALERT BANNER */
+.alert-banner{border-radius:8px;padding:9px 13px;margin-bottom:10px;border:1px solid;display:none}
+.alert-red{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.25)}
+.alert-amber{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25)}
+.alert-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.alert-red .alert-title{color:var(--red)}
+.alert-amber .alert-title{color:var(--amber)}
+.alert-sub{font-size:11px}
+.alert-red .alert-sub{color:var(--red)}
+.alert-amber .alert-sub{color:var(--amber)}
+
+/* MULTI PLOT */
+.plot-row{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:7px}
+.plot-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.plot-lbl{font-size:10px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em}
+.plot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:7px}
+.plot-grid .fgrp input,.plot-grid .fgrp select{font-size:11px;padding:5px 7px}
+.add-link{background:none;border:none;font-size:11px;color:var(--blue);cursor:pointer;padding:4px 0;font-family:var(--font)}
+.add-link:hover{opacity:.8}
+
+/* GROUPS */
+.grp-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;overflow:hidden;margin-bottom:9px}
+.grp-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surf3);border-bottom:1px solid var(--bdr)}
+.grp-hdr-l{display:flex;align-items:center;gap:8px}
+.grp-num{width:20px;height:20px;border-radius:50%;background:rgba(79,156,249,.15);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:1px solid rgba(79,156,249,.3);flex-shrink:0}
+.grp-name{background:transparent;border:none;font-size:12px;font-weight:500;color:var(--txt);font-family:var(--font);outline:none;width:170px}
+.grp-name:focus{border-bottom:1px solid var(--blue)}
+.grp-meta{font-size:10px;color:var(--txt3);margin-top:1px}
+.grp-body{padding:12px}
+.grp-surv{display:flex;align-items:center;gap:8px;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid var(--bdr)}
+.grp-surv-lbl{font-size:10px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;min-width:110px}
+.grp-surv input{max-width:180px;font-size:12px}
+.grp-surv-note{font-size:10px;color:var(--txt3);margin-left:8px}
+.col-hdrs{display:grid;gap:4px;margin-bottom:3px}
+.col-hdr{font-size:9px;font-weight:500;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+.con-row{display:grid;gap:4px;align-items:center;margin-bottom:4px}
+.con-row input,.con-row select{font-size:11px;padding:4px 7px;background:var(--surf);border:1px solid var(--bdr);border-radius:5px;color:var(--txt);font-family:var(--font);outline:none;width:100%}
+.con-row input:focus,.con-row select:focus{border-color:var(--blue)}
+.con-row input.auto{border-color:rgba(52,211,153,.35);color:var(--green)}
+.vbtn{background:var(--surf3);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;color:var(--txt3);cursor:pointer;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:all .12s;width:100%}
+.vbtn:hover{border-color:var(--blue);color:var(--txt)}
+.vbtn.filled{border-color:rgba(52,211,153,.35);color:var(--green);font-weight:500}
+.sovr{font-size:9px;color:var(--txt3);cursor:pointer;display:flex;align-items:center;gap:3px;margin-top:2px}
+.sovr:hover{color:var(--blue)}
 </style>
 </head>
 <body>
@@ -182,16 +214,20 @@ const{createClient}=supabase;
 const db=createClient(SUPA_URL,SUPA_KEY);
 
 // ── State ──────────────────────────────────────────────────
+const TABLES=['orders','purchases','containers','transporters','loading','surveyor_ef',
+  'psi','cfs_trucks','cfs_stuffing','invoices','customs','shipping','payments','rates','product_specs'];
+
 let S={
   page:'dashboard',
-  recs:{orders:[],purchases:[],containers:[],transporters:[],loading:[],surveyor:[],customs:[],rates:[]},
+  recs:Object.fromEntries(TABLES.map(t=>[t,[]])),
   masters:{buyers:[],products:[],exporters:[],transporters:[]},
-  dbStatus:'loading',
-  search:'',
-  // modal temp state
+  dbStatus:'loading',search:'',
+  // modal temp
   sel:{contract:null,booking:null,assignment:null,vendor1:null,vendor2:null},
-  groups:[],           // loading groups
+  groups:[],groupCounter:0,
+  plots:[],plotCounter:0,
   qSearch:{contract:'',booking:'',assignment:'',vendor:''},
+  _editIds:{},
 };
 
 // ── DB ─────────────────────────────────────────────────────
@@ -202,7 +238,7 @@ async function loadTable(t){
 }
 async function loadAll(){
   S.dbStatus='loading';renderSidebar();
-  await Promise.all(Object.keys(S.recs).map(t=>loadTable(t)));
+  await Promise.all(TABLES.map(t=>loadTable(t)));
   rebuildMasters();S.dbStatus='ok';renderAll();
 }
 function rebuildMasters(){
@@ -213,7 +249,8 @@ function rebuildMasters(){
 }
 async function saveRec(table,data,id){
   try{
-    let res=id?await db.from(table).update(data).eq('id',id).select():await db.from(table).insert(data).select();
+    const res=id?await db.from(table).update(data).eq('id',id).select()
+                :await db.from(table).insert(data).select();
     if(res.error)throw res.error;
     await loadTable(table);rebuildMasters();renderAll();closeModal();toast('Saved');
   }catch(e){toast(e.message,'e');console.error(e);}
@@ -227,7 +264,8 @@ async function delRec(table,id){
 
 // ── Helpers ────────────────────────────────────────────────
 const today=()=>new Date().toISOString().slice(0,10);
-const fy=()=>{const y=new Date().getFullYear(),m=new Date().getMonth();return m>=3?`${y}-${String(y+1).slice(2)}`:`${y-1}-${String(y).slice(2)}`;}
+const fy=()=>{const y=new Date().getFullYear(),m=new Date().getMonth();
+  return m>=3?`${y}-${String(y+1).slice(2)}`:`${y-1}-${String(y).slice(2)}`;}
 const fmt=(n)=>n!=null&&n!==''?Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
 const fmtN=(n)=>n!=null&&n!==''?Number(n).toLocaleString('en-IN'):'—';
 const fv=(id)=>{const e=document.getElementById(id);return e?e.value:'';}
@@ -235,306 +273,202 @@ const uid=(p)=>`${p}-${Date.now().toString(36).toUpperCase()}`;
 
 function toast(msg,type='s'){
   const d=document.createElement('div');
-  d.className=`toast t-${type}`;d.textContent=msg;
+  d.className=`toast t${type}`;d.textContent=msg;
   document.body.appendChild(d);setTimeout(()=>d.remove(),2600);
 }
 function bdg(v){
-  const m={Confirmed:'bg',Pending:'ba',Cancelled:'br',Matched:'bg',Discrepancy:'br',Approved:'bb',Paid:'bg',Unpaid:'ba',Overdue:'br','Booked':'bb',Yes:'bg',No:'br','Gate-In Done':'bg','LEO Received':'bb','Clearance Pending':'ba',Completed:'bg','In Transit':'bb',Assigned:'ba','Applied-Pending':'ba','Ready for Customs':'bg',Scheduled:'ba','In Progress':'bb',Passed:'bg',Failed:'br','Re-inspection':'ba','Partial':'bp'};
+  const m={Confirmed:'bg',Pending:'ba',Cancelled:'br',Matched:'bg',Discrepancy:'br',
+    Approved:'bb',Paid:'bg',Unpaid:'ba',Overdue:'br','Booked':'bb',Yes:'bg',No:'br',
+    'Gate-In Done':'bg','LEO Received':'bb','Clearance Pending':'ba',Completed:'bg',
+    'In Transit':'bb',Assigned:'ba','Ready for Customs':'bg',Scheduled:'ba',
+    'In Progress':'bb',Passed:'bg',Failed:'br','Re-inspection':'ba',Partial:'bp',
+    'PSI Done':'bg','PSI Pending':'ba','Dispatched':'bb','Received':'bg',
+    'Stuffed':'bg','Awaiting Stuffing':'ba','BL Received':'bg','Docs Sent':'bc',
+    'Payment Received':'bg','Telex Released':'bp'};
   return`<span class="badge ${m[v]||'bgr'}">${v||'—'}</span>`;
 }
 function setPage(p){S.page=p;S.search='';renderAll();}
 function closeModal(){document.getElementById('mroot').innerHTML='';}
-function openModal(html){document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeModal()">${html}</div>`;}
-function mf(lbl,id,type='text',opts='',full=false,val='',cls=''){
+function openModal(html){document.getElementById('mroot').innerHTML=`<div class="moverlay" onclick="if(event.target===this)closeModal()">${html}</div>`;}
+function mw(title,body,onSave,lg=false){
+  return`<div class="modal${lg?' lg':''}"><h3>${title}</h3>${body}<div class="mac"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="${onSave}">Save to Database</button></div></div>`;
+}
+function mf(lbl,id,type='text',opts='',full=false,val=''){
   const c='fgrp'+(full?' full':'');
-  if(type==='select')return`<div class="${c}"><label>${lbl}</label><select id="${id}" class="${cls}">${opts}</select></div>`;
-  if(type==='textarea')return`<div class="${c}"><label>${lbl}</label><textarea id="${id}" class="${cls}">${val||''}</textarea></div>`;
-  return`<div class="${c}"><label>${lbl}</label><input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}" class="${cls}"></div>`;
+  if(type==='select')return`<div class="${c}"><label>${lbl}</label><select id="${id}">${opts}</select></div>`;
+  if(type==='textarea')return`<div class="${c}"><label>${lbl}</label><textarea id="${id}">${val||''}</textarea></div>`;
+  return`<div class="${c}"><label>${lbl}</label><input type="${type}" id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}"></div>`;
 }
 function sel(opts,cur){return opts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${o}</option>`).join('');}
 function dlf(lbl,id,lid,items,full=false,val=''){
   const c='fgrp'+(full?' full':'');
   return`<div class="${c}"><label>${lbl}</label><input id="${id}" list="${lid}" value="${(val||'').replace(/"/g,'&quot;')}" autocomplete="off"><datalist id="${lid}">${items.map(i=>`<option value="${i}">`).join('')}</datalist></div>`;
 }
-function sec(t){return`<div class="sec">${t}</div>`;}
-function mw(title,body,onSave,lg=false){
-  return`<div class="modal${lg?' modal-lg':''}"><h3>${title}</h3>${body}<div class="mac"><button onclick="closeModal()">Cancel</button><button class="pri" onclick="${onSave}">Save to Database</button></div></div>`;
-}
+function msec(t){return`<div class="msec">${t}</div>`;}
+function af(id,val){const e=document.getElementById(id);if(e){e.value=val;e.classList.add('af');}}
 
-// ── Contract number generator ──────────────────────────────
+// ── Contract number auto-generate ─────────────────────────
 function genContractNo(exp){
   if(!exp)return'';
   const pfx=exp.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,4);
-  const existing=S.recs.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(pfx+'/'));
-  return`${pfx}/${fy()}/${String(existing.length+1).padStart(3,'0')}`;
+  const ex=S.recs.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(pfx+'/'));
+  return`${pfx}/${fy()}/${String(ex.length+1).padStart(3,'0')}`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// QUERY WINDOWS — reusable popup pickers
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// QUERY WINDOWS
+// ══════════════════════════════════════════════════════════
 
-// Contract query window (pending/confirmed contracts)
-function contractQueryWindow(selectedId, onSelectFn, filterStatus='Confirmed'){
+function contractQWin(selId,onSel){
   const q=S.qSearch.contract||'';
-  const list=S.recs.orders.filter(o=>(filterStatus==='all'||o.signed_contract==='Yes')&&
-    (!q||[o.contract_no,o.buyer,o.product,o.exporter].join(' ').toLowerCase().includes(q.toLowerCase())));
-  const selObj=selectedId?S.recs.orders.find(o=>o.id===selectedId):null;
-  return`
-  <div class="qwin">
+  const list=S.recs.orders.filter(o=>o.signed_contract==='Yes'&&
+    (!q||[o.contract_no,o.buyer,o.product,o.exporter,o.bag_marking].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selId?S.recs.orders.find(o=>o.id===selId):null;
+  return`<div class="qwin">
     <div class="qwin-hdr">
-      <span class="qwin-title">📋 Select Pending Contract</span>
-      <input class="qwin-search" placeholder="Search contract, buyer, product…" value="${q}"
-        oninput="S.qSearch.contract=this.value;refreshQWin()">
+      <span class="qwin-title">Select Pending Contract</span>
+      <input class="qwin-search" placeholder="Search contract, buyer, product, bag marking…" value="${q}"
+        oninput="S.qSearch.contract=this.value;reRenderModal()">
     </div>
-    <div class="qwin-list" id="qwin-contract">
+    <div class="qwin-list">
       ${list.length?list.map(o=>`
-        <div class="qcard${selectedId===o.id?' selected':''}" onclick="${onSelectFn}('${o.id}')">
+        <div class="qcard${selId===o.id?' sel':''}" onclick="${onSel}('${o.id}')">
           <div class="qcard-top">
-            <span class="qcard-id">${o.contract_no||o.id}</span>
-            ${bdg(o.signed_contract==='Yes'?'Confirmed':'Pending')}
+            <div><div class="qcard-id">${o.contract_no||o.id}</div><div class="qcard-sub">${o.buyer||'—'}</div></div>
+            <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+              ${bdg('Confirmed')}
+              <span class="badge ba">${fmtN(o.qty)} MT</span>
+            </div>
           </div>
-          <div class="qcard-row">
-            <span class="qcard-tag">👤 ${o.buyer||'—'}</span>
-            <span class="qcard-tag">🏭 ${o.exporter||'—'}</span>
-            <span class="qcard-tag hi">📦 ${o.product||'—'}</span>
-            <span class="qcard-tag">⚖️ ${fmtN(o.qty)} MT</span>
-            <span class="qcard-tag hi">${o.currency||'USD'} ${fmt(o.unit_price)}</span>
-            <span class="qcard-tag">📅 ${o.contract_date||'—'}</span>
+          <div class="bmark"><span class="bmark-lbl">Bag Marking</span><span class="bmark-val">${o.bag_marking||'—'}</span></div>
+          <div class="qtags">
+            <span class="qtag hi">${o.product||'—'}</span>
+            <span class="qtag">${o.currency||'USD'} ${fmt(o.unit_price)}/MT</span>
+            <span class="qtag">${o.exporter||'—'}</span>
+            <span class="qtag">${o.delivery_terms||'—'}</span>
+            <span class="qtag">${o.payment_terms||'—'}</span>
           </div>
         </div>`).join(''):`<div class="empty">No confirmed contracts found.</div>`}
     </div>
-    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.contract_no||selObj.id} — ${selObj.buyer||'—'} · ${selObj.product||'—'}</span><button class="sm danger" onclick="${onSelectFn}(null)">Clear</button></div>`:''}
+    ${selObj?`<div class="sel-pill"><span class="sel-pill-txt">✓ ${selObj.contract_no} — ${selObj.buyer} · ${selObj.product} · Bag: ${selObj.bag_marking||'—'}</span><button class="xs dan" onclick="${onSel}(null)">Clear</button></div>`:''}
   </div>`;
 }
 
-// Booking query window (pending container bookings)
-function bookingQueryWindow(selectedId, onSelectFn){
+function bookingQWin(selId,onSel){
   const q=S.qSearch.booking||'';
   const list=S.recs.containers.filter(c=>(c.status==='Booked'||c.status==='Confirmed')&&
-    (!q||[c.booking_ref,c.shipping_line,c.vessel,c.linked_contract_no].join(' ').toLowerCase().includes(q.toLowerCase())));
-  const selObj=selectedId?S.recs.containers.find(c=>c.id===selectedId):null;
-  return`
-  <div class="qwin">
+    (!q||[c.booking_ref,c.shipping_line,c.vessel,c.linked_contract_no,c.pol,c.pod].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selId?S.recs.containers.find(c=>c.id===selId):null;
+  return`<div class="qwin">
     <div class="qwin-hdr">
-      <span class="qwin-title">🚢 Select Pending Container Booking</span>
-      <input class="qwin-search" placeholder="Search booking ref, line…" value="${q}"
-        oninput="S.qSearch.booking=this.value;refreshQWin()">
+      <span class="qwin-title">Select Pending Booking</span>
+      <input class="qwin-search" placeholder="Search booking ref, line, vessel, contract…" value="${q}"
+        oninput="S.qSearch.booking=this.value;reRenderModal()">
     </div>
-    <div class="qwin-list" id="qwin-booking">
+    <div class="qwin-list">
       ${list.length?list.map(c=>`
-        <div class="qcard${selectedId===c.id?' selected':''}" onclick="${onSelectFn}('${c.id}')">
+        <div class="qcard${selId===c.id?' sel':''}" onclick="${onSel}('${c.id}')">
           <div class="qcard-top">
-            <span class="qcard-id">${c.booking_ref||c.id}</span>
-            ${bdg(c.status||'Booked')}
+            <div><div class="qcard-id">${c.booking_ref||c.id}</div><div class="qcard-sub">${c.shipping_line||'—'} · ${c.vessel||'—'}</div></div>
+            <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+              ${bdg(c.status||'Booked')}
+              <span class="badge bb">${c.num_containers||'?'} × ${c.container_type||'—'}</span>
+            </div>
           </div>
-          <div class="qcard-row">
-            <span class="qcard-tag">🚢 ${c.shipping_line||'—'}</span>
-            <span class="qcard-tag">⚓ ${c.vessel||'—'}</span>
-            <span class="qcard-tag hi">📦 ${c.num_containers||'?'} × ${c.container_type||'—'}</span>
-            <span class="qcard-tag">📋 ${c.linked_contract_no||'—'}</span>
-            <span class="qcard-tag">📅 ETD: ${c.etd||'—'}</span>
-            <span class="qcard-tag">🛳️ ${c.pol||'—'} → ${c.pod||'—'}</span>
+          <div style="display:flex;align-items:center;gap:5px;background:rgba(79,156,249,.07);border:1px solid rgba(79,156,249,.2);border-radius:5px;padding:4px 8px;margin-top:5px">
+            <span style="font-size:9px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap">Contract</span>
+            <span style="font-size:11px;font-weight:500;color:var(--blue);font-family:var(--mono)">${c.linked_contract_no||'—'}</span>
+          </div>
+          <div class="qtags" style="margin-top:5px">
+            <span class="qtag">ETD: ${c.etd||'—'}</span>
+            <span class="qtag">${c.pol||'—'} → ${c.pod||'—'}</span>
+            <span class="qtag">${c.forwarder||'—'}</span>
           </div>
         </div>`).join(''):`<div class="empty">No pending bookings found.</div>`}
     </div>
-    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.booking_ref||selObj.id} — ${selObj.shipping_line||'—'} · ${selObj.num_containers||'?'} containers · ETD ${selObj.etd||'—'}</span><button class="sm danger" onclick="${onSelectFn}(null)">Clear</button></div>`:''}
+    ${selObj?`<div class="sel-pill"><span class="sel-pill-txt">✓ ${selObj.booking_ref} — ${selObj.shipping_line} · ${selObj.num_containers} containers</span><button class="xs dan" onclick="${onSel}(null)">Clear</button></div>`:''}
   </div>`;
 }
 
-// Assignment query window (pending loading assignments from transporters)
-function assignmentQueryWindow(selectedId, onSelectFn){
+function assignmentQWin(selId,onSel){
   const q=S.qSearch.assignment||'';
   const list=S.recs.transporters.filter(t=>(t.status==='Assigned'||t.status==='In Transit')&&
-    (!q||[t.assignment_id,t.transporter,t.booking_ref,t.vehicle_no].join(' ').toLowerCase().includes(q.toLowerCase())));
-  const selObj=selectedId?S.recs.transporters.find(t=>t.assignment_id===selectedId||t.id===selectedId):null;
-  return`
-  <div class="qwin">
+    (!q||[t.assignment_id,t.transporter,t.booking_ref,t.order_id].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const selObj=selId?S.recs.transporters.find(t=>t.assignment_id===selId||t.id===selId):null;
+  return`<div class="qwin">
     <div class="qwin-hdr">
-      <span class="qwin-title">🚛 Select Pending Loading Assignment</span>
-      <input class="qwin-search" placeholder="Search assignment ID, transporter…" value="${q}"
-        oninput="S.qSearch.assignment=this.value;refreshQWin()">
+      <span class="qwin-title">Select Pending Assignment</span>
+      <input class="qwin-search" placeholder="Search assignment ID, transporter, booking…" value="${q}"
+        oninput="S.qSearch.assignment=this.value;reRenderModal()">
     </div>
-    <div class="qwin-list" id="qwin-assignment">
-      ${list.length?list.map(t=>`
-        <div class="qcard${selectedId===(t.assignment_id||t.id)?' selected':''}" onclick="${onSelectFn}('${t.assignment_id||t.id}','${t.booking_ref||''}','${t.order_id||''}','${t.num_containers||1}')">
+    <div class="qwin-list">
+      ${list.length?list.map(t=>{
+        const today2=new Date();const dl=t.gate_in_deadline?new Date(t.gate_in_deadline):null;
+        const diff=dl?Math.round((dl-today2)/86400000):null;
+        const urgCls=diff===null?'bgr':diff<0?'br':diff<=2?'ba':'bg';
+        const urgLbl=diff===null?'—':diff<0?`Overdue ${Math.abs(diff)}d`:diff<=2?`${diff}d left`:`Due ${t.gate_in_deadline}`;
+        return`<div class="qcard${selId===(t.assignment_id||t.id)?' sel':''}" onclick="${onSel}('${t.assignment_id||t.id}','${t.booking_ref||''}','${t.order_id||''}')">
           <div class="qcard-top">
-            <span class="qcard-id" style="color:var(--purple)">${t.assignment_id||t.id}</span>
-            ${bdg(t.status||'Assigned')}
+            <div><div class="qcard-id" style="color:var(--purple)">${t.assignment_id||t.id}</div><div class="qcard-sub">${t.transporter||'—'}</div></div>
+            <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+              ${bdg(t.status||'Assigned')}
+              <span class="badge ${urgCls}" style="font-size:9px">${urgLbl}</span>
+            </div>
           </div>
-          <div class="qcard-row">
-            <span class="qcard-tag">🚢 ${t.booking_ref||'—'}</span>
-            <span class="qcard-tag">🚛 ${t.transporter||'—'}</span>
-            <span class="qcard-tag hi">📦 ${t.num_containers||'?'} containers</span>
-            <span class="qcard-tag">📋 ${t.order_id||'—'}</span>
-            <span class="qcard-tag">📅 ${t.transport_date||'—'}</span>
-            <span class="qcard-tag">🛣️ ${t.route||'—'}</span>
+          <div class="qtags">
+            <span class="qtag">Booking: ${t.booking_ref||'—'}</span>
+            <span class="qtag">Contract: ${t.order_id||'—'}</span>
+            <span class="qtag hi">${t.num_containers||'?'} containers</span>
           </div>
-        </div>`).join(''):`<div class="empty">No pending assignments. Create one in Transporters first.</div>`}
+        </div>`;}).join(''):`<div class="empty">No pending assignments found.</div>`}
     </div>
-    ${selObj?`<div class="selected-pill"><span class="selected-pill-txt">✓ Selected: ${selObj.assignment_id||selObj.id} — ${selObj.transporter||'—'} · Booking: ${selObj.booking_ref||'—'} · ${selObj.num_containers||'?'} containers</span><button class="sm danger" onclick="${onSelectFn}(null,'','','')">Clear</button></div>`:''}
+    ${selObj?`<div class="sel-pill"><span class="sel-pill-txt">✓ ${selObj.assignment_id||selObj.id} — ${selObj.transporter||'—'}</span><button class="xs dan" onclick="${onSel}(null,'','')">Clear</button></div>`:''}
   </div>`;
 }
 
-// Vendor/Purchase query window
-function vendorQueryWindow(selectedId, onSelectFn, rowIdx){
-  const q=S.qSearch.vendor||'';
-  const list=S.recs.purchases.filter(p=>Number(p.pending_qty||p.qty||0)>0&&
-    (!q||[p.vendor,p.commodity,p.bag_marking,p.linked_contract_no].join(' ').toLowerCase().includes(q.toLowerCase())));
-  const selObj=selectedId?S.recs.purchases.find(p=>p.id===selectedId):null;
-  return`
-  <div class="modal" style="max-width:600px">
-    <h3>Select Vendor Purchase Lot</h3>
-    <div class="qwin" style="margin-bottom:0">
-      <div class="qwin-hdr">
-        <span class="qwin-title">📦 Pending Purchase Lots</span>
-        <input class="qwin-search" placeholder="Search vendor, product, marking…" value="${q}"
-          oninput="S.qSearch.vendor=this.value;refreshVendorQWin(${rowIdx})">
-      </div>
-      <div class="qwin-list">
-        ${list.length?list.map(p=>`
-          <div class="qcard${selectedId===p.id?' selected':''}" onclick="${onSelectFn}('${p.id}',${rowIdx})">
-            <div class="qcard-top">
-              <span class="qcard-id" style="color:var(--amber)">${p.vendor||'—'}</span>
-              <span class="badge ba">${fmtN(p.pending_qty||p.qty)} MT pending</span>
-            </div>
-            <div class="qcard-row">
-              <span class="qcard-tag hi">📦 ${p.commodity||'—'}</span>
-              <span class="qcard-tag">🏷️ ${p.bag_marking||'—'}</span>
-              <span class="qcard-tag">💰 ₹${fmt(p.price_inr)}/MT</span>
-              <span class="qcard-tag">📋 ${p.linked_contract_no||'—'}</span>
-              <span class="qcard-tag">📅 ${p.purchase_date||'—'}</span>
-            </div>
-          </div>`).join(''):`<div class="empty">No pending vendor lots found.</div>`}
-      </div>
-    </div>
-    <div class="mac"><button onclick="closeVendorQWin()">Cancel</button></div>
-  </div>`;
-}
+let _reRenderFn=null;
+function reRenderModal(){if(_reRenderFn)_reRenderFn();}
 
-function refreshQWin(){
-  // Re-render just the query window content based on current modal
-  const modal=document.querySelector('.modal');
-  if(modal)renderAll();
-}
-function refreshVendorQWin(rowIdx){
-  document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeVendorQWin()">${vendorQueryWindow(S.groups[rowIdx]?.purchaseId,'selectVendorForRow',rowIdx)}</div>`;
-}
-function closeVendorQWin(){
-  // reopen loading modal
-  openLoadingModal(S._editingLoadId);
-}
-
-// ═══════════════════════════════════════════════════════════
-// GROUPS STATE (for loading assignment)
-// ═══════════════════════════════════════════════════════════
-// S.groups = array of groups, each group = {id, name, rows:[{containerId,vehicleId,qty,from,to,vendor,bagMarking,surveyor,rate,purchaseId}]}
-
-function initGroups(existingData){
-  if(existingData&&existingData.groups){
-    try{S.groups=JSON.parse(existingData.groups);}catch(e){S.groups=[];}
-  } else {S.groups=[];}
-}
-
-function addGroup(){
-  S.groups.push({id:uid('GRP'),name:`Group ${S.groups.length+1}`,rows:[]});
-  openLoadingModal(S._editingLoadId);
-}
-function removeGroup(gi){
-  S.groups.splice(gi,1);
-  openLoadingModal(S._editingLoadId);
-}
-function addRowToGroup(gi){
-  S.groups[gi].rows.push({containerId:'',vehicleId:'',qty:'',from:'',to:'',vendor:'',bagMarking:'',surveyor:'',rate:'',purchaseId:''});
-  openLoadingModal(S._editingLoadId);
-}
-function removeRowFromGroup(gi,ri){
-  S.groups[gi].rows.splice(ri,1);
-  openLoadingModal(S._editingLoadId);
-}
-function updateGroupRow(gi,ri,field,val){
-  if(S.groups[gi]&&S.groups[gi].rows[ri])S.groups[gi].rows[ri][field]=val;
-}
-function selectVendorForRow(purchaseId, rowIdx){
-  // rowIdx encodes gi*1000+ri
-  const gi=Math.floor(rowIdx/1000),ri=rowIdx%1000;
-  const p=S.recs.purchases.find(x=>x.id===purchaseId);
-  if(p&&S.groups[gi]&&S.groups[gi].rows[ri]){
-    S.groups[gi].rows[ri].vendor=p.vendor||'';
-    S.groups[gi].rows[ri].bagMarking=p.bag_marking||'';
-    S.groups[gi].rows[ri].purchaseId=purchaseId;
-  }
-  openLoadingModal(S._editingLoadId);
-}
-function openVendorPicker(gi,ri){
-  const rowIdx=gi*1000+ri;
-  S.qSearch.vendor='';
-  document.getElementById('mroot').innerHTML=`<div class="modal-overlay" onclick="if(event.target===this)closeVendorQWin()">${vendorQueryWindow(S.groups[gi]?.rows[ri]?.purchaseId,'selectVendorForRow',rowIdx)}</div>`;
-}
-
-function renderGroups(){
-  if(!S.groups.length)return`<div style="color:var(--txt3);font-size:12px;padding:8px 0;text-align:center">No groups yet. Click "Add Group" to create one.</div>`;
-  return`<div class="groups-wrap">${S.groups.map((g,gi)=>`
-    <div class="group-box">
-      <div class="group-hdr">
-        <div class="group-hdr-left">
-          <div class="group-num">${gi+1}</div>
-          <div>
-            <div class="group-name"><input style="background:transparent;border:none;color:var(--txt);font-size:12px;font-weight:600;font-family:var(--font);width:200px;outline:none" value="${g.name}" oninput="S.groups[${gi}].name=this.value"></div>
-            <div class="group-meta">${g.rows.length} container row${g.rows.length!==1?'s':''} · Total: ${fmtN(g.rows.reduce((s,r)=>s+(Number(r.qty)||0),0))} MT</div>
-          </div>
-        </div>
-        <button class="sm danger" onclick="removeGroup(${gi})">Remove Group</button>
-      </div>
-      <div class="group-body">
-        <div class="cr-hdrs">
-          ${['Container No.','Vehicle No.','Qty (MT)','From','To','Vendor (auto)','Bag Marking (auto)','Surveyor / Rate',''].map(h=>`<div class="cr-lbl">${h}</div>`).join('')}
-        </div>
-        <div class="group-rows">
-          ${g.rows.map((r,ri)=>`
-            <div class="container-row">
-              <input placeholder="TCKU123456-7" value="${r.containerId||''}" oninput="updateGroupRow(${gi},${ri},'containerId',this.value)">
-              <input placeholder="TN01AB1234" value="${r.vehicleId||''}" oninput="updateGroupRow(${gi},${ri},'vehicleId',this.value)">
-              <input type="number" placeholder="0.000" value="${r.qty||''}" oninput="updateGroupRow(${gi},${ri},'qty',this.value)">
-              <input placeholder="Vendor location" value="${r.from||''}" oninput="updateGroupRow(${gi},${ri},'from',this.value)">
-              <input placeholder="Port / CFS" value="${r.to||''}" oninput="updateGroupRow(${gi},${ri},'to',this.value)">
-              <button class="vendor-select-btn${r.vendor?' filled':''}" onclick="openVendorPicker(${gi},${ri})">${r.vendor||'+ Select Vendor'}</button>
-              <input placeholder="Bag marking" value="${r.bagMarking||''}" class="${r.bagMarking?'auto':''}" oninput="updateGroupRow(${gi},${ri},'bagMarking',this.value)">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
-                <input placeholder="Surveyor" value="${r.surveyor||''}" oninput="updateGroupRow(${gi},${ri},'surveyor',this.value)">
-                <input type="number" placeholder="Rate" value="${r.rate||''}" oninput="updateGroupRow(${gi},${ri},'rate',this.value)">
-              </div>
-              <button class="sm danger ghost" onclick="removeRowFromGroup(${gi},${ri})">✕</button>
-            </div>`).join('')}
-        </div>
-        <div class="add-row-btn" onclick="addRowToGroup(${gi})">＋ Add container row to this group</div>
-      </div>
-    </div>`).join('')}</div>`;
-}
-
-// ═══════════════════════════════════════════════════════════
-// NAV
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// NAV CONFIG
+// ══════════════════════════════════════════════════════════
 const NAV=[
+  {grp:'Shared'},
   {id:'dashboard',label:'Dashboard',color:'#4f9cf9'},
   {id:'orders',label:'Orders & Contracts',color:'#4f9cf9'},
   {id:'purchases',label:'Raw Material Purchase',color:'#fbbf24'},
   {id:'containers',label:'Container Bookings',color:'#34d399'},
   {id:'transporters',label:'Transporters & Plot',color:'#a78bfa'},
+  {grp:'Ex-Factory'},
   {id:'loading',label:'Loading Assignment',color:'#64748b'},
-  {id:'surveyor',label:'Surveyor Report',color:'#22d3ee'},
-  {id:'customs',label:'Customs & Port',color:'#f87171'},
+  {id:'surveyor_ef',label:'Surveyor Report',color:'#22d3ee'},
+  {grp:'CFS Loading'},
+  {id:'psi',label:'PSI — Pre-Shipment Insp.',color:'#f472b6'},
+  {id:'cfs_trucks',label:'CFS Truck Dispatch',color:'#fbbf24'},
+  {id:'cfs_stuffing',label:'CFS Stuffing',color:'#34d399'},
+  {grp:'Post-Loading'},
+  {id:'invoices',label:'Invoice & Packing List',color:'#4f9cf9'},
+  {id:'customs',label:'Customs & Documentation',color:'#f87171'},
+  {id:'shipping',label:'Shipping & BL',color:'#22d3ee'},
+  {id:'payments',label:'Payment Tracking',color:'#34d399'},
+  {grp:'Masters'},
   {id:'rates',label:'Master Rates',color:'#5a6484'},
+  {id:'product_specs',label:'Product Specs',color:'#5a6484'},
 ];
 
 function renderSidebar(){
   const el=document.getElementById('snav');if(!el)return;
   const pill=S.dbStatus==='ok'
-    ?`<div class="db-pill db-ok"><span class="pulse"></span>Live · Supabase</div>`
+    ?`<div class="db-pill dbok"><span class="pulse"></span>Live · Supabase</div>`
     :S.dbStatus==='loading'
-    ?`<div class="db-pill db-load"><span class="spin"></span>Connecting…</div>`
-    :`<div class="db-pill db-err"><span class="pulse"></span>DB Error</div>`;
-  el.innerHTML=pill+NAV.map(n=>`<div class="nav-item${S.page===n.id?' active':''}" onclick="setPage('${n.id}')"><span class="nav-dot" style="background:${n.color}"></span>${n.label}</div>`).join('');
+    ?`<div class="db-pill dbload"><span class="spn"></span>Connecting…</div>`
+    :`<div class="db-pill dberr"><span class="pulse"></span>DB Error</div>`;
+  el.innerHTML=pill+NAV.map(n=>n.grp
+    ?`<div class="nav-grp">${n.grp}</div>`
+    :`<div class="nav-item${S.page===n.id?' active':''}" onclick="setPage('${n.id}')"><span class="ndot" style="background:${n.color}"></span>${n.label}</div>`
+  ).join('');
 }
+
 function renderAll(){
   const root=document.getElementById('root');if(!root)return;
   const pc=pages[S.page]||pages.dashboard;
@@ -542,11 +476,10 @@ function renderAll(){
   root.innerHTML=`
   <div class="app">
     <div class="sidebar">
-      <div class="logo"><h1>ExIm Manager</h1><p>v3 · Supabase</p></div>
-      <div class="nav-sec">Modules</div>
+      <div class="logo"><h1>ExIm Manager</h1><p>v4 · Full System</p></div>
       <div id="snav"></div>
-      <div style="margin-top:auto;padding:12px 10px 14px;border-top:1px solid var(--bdr)">
-        <div style="font-size:9px;color:var(--txt3);padding:0 6px;line-height:1.6">All data synced to cloud.<br>Shared across all users.</div>
+      <div style="margin-top:auto;padding:10px 8px 14px;border-top:1px solid var(--bdr)">
+        <div style="font-size:9px;color:var(--txt3);padding:0 6px;line-height:1.6">Cloud synced · All users shared</div>
       </div>
     </div>
     <div class="main">
@@ -560,77 +493,87 @@ function renderAll(){
   renderSidebar();
 }
 function tbl(rows,hdrs,rowFn,emsg){
-  return`<div style="overflow-x:auto"><table><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(rowFn).join(''):`<tr><td colspan="${hdrs.length}"><div class="empty"><strong>No records yet</strong>${emsg}</div></td></tr>`}</tbody></table></div>`;
+  return`<div style="overflow-x:auto"><table><thead><tr>${hdrs.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${
+    rows.length?rows.map(rowFn).join(''):`<tr><td colspan="${hdrs.length}"><div class="empty">${emsg}</div></td></tr>`
+  }</tbody></table></div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // DASHBOARD
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function renderDash(){
-  const o=S.recs.orders||[],p=S.recs.purchases||[],c=S.recs.containers||[];
+  const o=S.recs.orders,p=S.recs.purchases,c=S.recs.containers;
+  const inv=S.recs.invoices,pay=S.recs.payments;
   const conf=o.filter(x=>x.signed_contract==='Yes').length;
   const ttlCon=c.reduce((s,x)=>s+(Number(x.num_containers)||0),0);
-  const steps=[{l:'Orders',n:o.length,c:'#4f9cf9'},{l:'Confirmed',n:conf,c:'#34d399'},{l:'Purchases',n:p.length,c:'#fbbf24'},{l:'Bookings',n:c.length,c:'#34d399'},{l:'Loading',n:(S.recs.loading||[]).length,c:'#64748b'},{l:'Surveyor',n:(S.recs.surveyor||[]).length,c:'#22d3ee'},{l:'Customs',n:(S.recs.customs||[]).length,c:'#f87171'}];
+  const ttlInv=inv.reduce((s,x)=>s+(Number(x.invoice_value)||0),0);
+  const pendPay=inv.filter(x=>x.payment_status==='Unpaid'||x.payment_status==='Overdue').length;
+  const steps=[
+    {l:'Orders',n:o.length,c:'#4f9cf9'},{l:'Confirmed',n:conf,c:'#34d399'},
+    {l:'Purchases',n:p.length,c:'#fbbf24'},{l:'Bookings',n:c.length,c:'#34d399'},
+    {l:'Loading',n:S.recs.loading.length,c:'#64748b'},{l:'PSI',n:S.recs.psi.length,c:'#f472b6'},
+    {l:'CFS Trucks',n:S.recs.cfs_trucks.length,c:'#fbbf24'},{l:'Invoices',n:inv.length,c:'#4f9cf9'},
+    {l:'Customs',n:S.recs.customs.length,c:'#f87171'},{l:'BL Done',n:S.recs.shipping.filter(x=>x.bl_received).length,c:'#22d3ee'},
+  ];
   return`
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-lbl">Total Contracts</div><div class="kpi-val blue">${o.length}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Confirmed</div><div class="kpi-val green">${conf}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Containers Booked</div><div class="kpi-val blue">${ttlCon}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Active Purchases</div><div class="kpi-val amber">${p.length}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Customs Cleared</div><div class="kpi-val green">${(S.recs.customs||[]).filter(x=>x.status==='Gate-In Done'||x.status==='Loaded on Vessel').length}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Pending Contracts</div><div class="kpi-val amber">${o.filter(x=>x.signed_contract!=='Yes').length}</div></div>
+  <div class="kgrid">
+    <div class="kpi"><div class="klbl">Total Contracts</div><div class="kval" style="color:var(--blue)">${o.length}</div></div>
+    <div class="kpi"><div class="klbl">Confirmed</div><div class="kval" style="color:var(--green)">${conf}</div></div>
+    <div class="kpi"><div class="klbl">Containers Booked</div><div class="kval" style="color:var(--blue)">${ttlCon}</div></div>
+    <div class="kpi"><div class="klbl">Invoice Value (USD)</div><div class="kval" style="color:var(--green);font-size:16px">$${fmt(ttlInv)}</div></div>
+    <div class="kpi"><div class="klbl">Pending Payments</div><div class="kval" style="color:var(--amber)">${pendPay}</div></div>
+    <div class="kpi"><div class="klbl">Purchases</div><div class="kval" style="color:var(--amber)">${p.length}</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    <div class="card"><div class="card-ttl">Workflow pipeline</div>
-      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-        ${steps.map(s=>`<div style="text-align:center"><div style="width:40px;height:${Math.max(28,s.n*8+28)}px;background:${s.c}18;border:1px solid ${s.c}40;border-radius:6px 6px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:12px;font-weight:700;color:${s.c};font-family:var(--mono)">${s.n}</div><div style="font-size:9px;color:var(--txt3);margin-top:4px;white-space:nowrap">${s.l}</div></div>`).join('')}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="card"><div class="ctitle">Pipeline</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        ${steps.map(s=>`<div style="text-align:center"><div style="width:34px;height:${Math.max(22,s.n*6+22)}px;background:${s.c}18;border:1px solid ${s.c}35;border-radius:5px 5px 0 0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:11px;font-weight:600;color:${s.c};font-family:var(--mono)">${s.n}</div><div style="font-size:9px;color:var(--txt3);margin-top:3px;white-space:nowrap">${s.l}</div></div>`).join('')}
       </div>
     </div>
-    <div class="card"><div class="card-ttl">Recent Contracts</div>
-      ${o.slice(0,5).map(x=>`<div style="padding:6px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue)">${x.contract_no||x.id}</span>${bdg(x.signed_contract==='Yes'?'Confirmed':'Pending')}</div><div style="font-size:11px;color:var(--txt3);margin-top:2px">${x.buyer||'—'} · ${x.product||'—'} · ${fmtN(x.qty)} MT</div></div>`).join('')||`<div class="empty">No contracts yet</div>`}
+    <div class="card"><div class="ctitle">Recent Contracts</div>
+      ${o.slice(0,5).map(x=>`<div style="padding:5px 0;border-bottom:1px solid var(--bdr)"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--blue)">${x.contract_no||x.id}</span>${bdg(x.signed_contract==='Yes'?'Confirmed':'Pending')}</div><div style="font-size:11px;color:var(--txt3);margin-top:1px">${x.buyer||'—'} · ${x.product||'—'} · ${fmtN(x.qty)} MT</div></div>`).join('')
+      ||`<div class="empty">No contracts yet</div>`}
     </div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 // A. ORDERS & CONTRACTS
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
 function renderOrders(){
-  const rows=(S.recs.orders||[]).filter(o=>!S.search||[o.buyer,o.contract_no,o.product,o.exporter].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const rows=S.recs.orders.filter(o=>!S.search||[o.buyer,o.contract_no,o.product,o.exporter].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search buyer, contract, product…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderOrders()"><button class="pri" onclick="openOrderModal()">+ New Contract</button></div>`+
   `<div class="card">`+tbl(rows,['Contract No.','Date','Buyer','Buyer Port','Product','Qty (MT)','Currency','Price','Exporter','Bag Marking','Bag Type','Signed','Actions'],r=>`<tr>
     <td><span class="mono" style="color:var(--blue)">${r.contract_no||'—'}</span></td>
-    <td>${r.contract_date||'—'}</td>
-    <td><strong>${r.buyer||'—'}</strong></td><td>${r.buyer_port||'—'}</td>
-    <td>${r.product||'—'}</td>
-    <td class="mono">${fmtN(r.qty)}</td><td>${r.currency||'USD'}</td>
-    <td class="mono">${fmt(r.unit_price)}</td>
-    <td>${r.exporter||'—'}</td><td>${r.bag_marking||'—'}</td><td>${r.bag_type||'—'}</td>
+    <td>${r.contract_date||'—'}</td><td><strong>${r.buyer||'—'}</strong></td><td>${r.buyer_port||'—'}</td>
+    <td>${r.product||'—'}</td><td class="mono">${fmtN(r.qty)}</td><td>${r.currency||'USD'}</td>
+    <td class="mono">${fmt(r.unit_price)}</td><td>${r.exporter||'—'}</td>
+    <td>${r.bag_marking||'—'}</td><td>${r.bag_type||'—'}</td>
     <td>${bdg(r.signed_contract==='Yes'?'Confirmed':'Pending')}</td>
-    <td><div class="acell"><button class="sm" onclick="openOrderModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('orders','${r.id}')">Del</button></div></td>
+    <td><div class="acell"><button class="sm" onclick="openOrderModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('orders','${r.id}')">Del</button></div></td>
   </tr>`,'Click + New Contract to begin.')+`</div>`;
 }
 function openOrderModal(id){
-  const r=id?(S.recs.orders||[]).find(o=>o.id===id):{};
+  const r=id?S.recs.orders.find(o=>o.id===id):{};
   const currencies=['USD','EUR','GBP','INR','AED','SGD','JPY'];
   const bagTypes=['PP Bag','Jute Bag','HDPE Bag','Paper Bag','Bulk','Other'];
   const body=`<div class="fg">
-    ${sec('Contract Details')}
-    ${dlf('Exporter / Seller Name','o_exp','o_exp_dl',S.masters.exporters,false,r.exporter||'')}
-    <div class="fgrp"><label>Contract Number (auto-generated)</label><input id="o_cno" value="${r.contract_no||''}" style="font-family:var(--mono);color:var(--blue)"></div>
+    ${msec('Contract')}
+    ${dlf('Exporter Name','o_exp','o_exp_dl',S.masters.exporters,false,r.exporter||'')}
+    <div class="fgrp"><label>Contract No. (auto)</label><input id="o_cno" value="${r.contract_no||''}" style="font-family:var(--mono);color:var(--blue)"></div>
     <div class="fgrp"><label>Contract Date</label><input type="date" id="o_date" value="${r.contract_date||today()}"></div>
-    <div class="fgrp"><label>Signed Contract Received?</label><select id="o_signed">${sel(['No','Yes','Pending'],r.signed_contract||'No')}</select></div>
-    ${sec('Buyer Details')}
+    <div class="fgrp"><label>Signed Contract?</label><select id="o_signed">${sel(['No','Yes','Pending'],r.signed_contract||'No')}</select></div>
+    ${msec('Buyer')}
     ${dlf('Buyer Name','o_buyer','o_buyer_dl',S.masters.buyers,false,r.buyer||'')}
     <div class="fgrp"><label>Buyer Port</label><input id="o_bport" value="${r.buyer_port||''}"></div>
-    ${sec('Product & Pricing')}
+    ${msec('Product & Pricing')}
     ${dlf('Product','o_prod','o_prod_dl',S.masters.products,false,r.product||'')}
     <div class="fgrp"><label>Quantity (MT)</label><input type="number" id="o_qty" value="${r.qty||''}"></div>
     <div class="fgrp"><label>Currency</label><select id="o_cur">${sel(currencies,r.currency||'USD')}</select></div>
     <div class="fgrp"><label>Unit Price</label><input type="number" id="o_price" value="${r.unit_price||''}"></div>
     <div class="fgrp"><label>Payment Terms</label><input id="o_pterm" value="${r.payment_terms||''}"></div>
     <div class="fgrp"><label>Delivery Terms</label><input id="o_dterm" value="${r.delivery_terms||''}"></div>
-    ${sec('Packing')}
+    ${msec('Packing')}
     <div class="fgrp"><label>Bag Marking</label><input id="o_bmark" value="${r.bag_marking||''}"></div>
     <div class="fgrp"><label>Bag Type</label><select id="o_btype">${sel(bagTypes,r.bag_type||'PP Bag')}</select></div>
     <div class="fgrp full"><label>Remarks</label><textarea id="o_rem">${r.remarks||''}</textarea></div>
@@ -642,74 +585,68 @@ function openOrderModal(id){
     if(expEl&&cnoEl&&!id){
       expEl.addEventListener('input',()=>{
         const v=expEl.value.trim();
-        if(v){
-          const pfx=v.split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,4);
+        if(v){const pfx=v.split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,4);
           const ex=S.recs.orders.filter(o=>o.contract_no&&o.contract_no.startsWith(pfx+'/'));
-          cnoEl.value=`${pfx}/${fy()}/${String(ex.length+1).padStart(3,'0')}`;
-        }
+          cnoEl.value=`${pfx}/${fy()}/${String(ex.length+1).padStart(3,'0')}`;}
       });
     }
   },80);
 }
 async function saveOrder(id){
-  const data={contract_date:fv('o_date')||null,exporter:fv('o_exp'),contract_no:fv('o_cno'),buyer:fv('o_buyer'),buyer_port:fv('o_bport'),product:fv('o_prod'),qty:fv('o_qty')||null,currency:fv('o_cur'),unit_price:fv('o_price')||null,payment_terms:fv('o_pterm'),delivery_terms:fv('o_dterm'),bag_marking:fv('o_bmark'),bag_type:fv('o_btype'),signed_contract:fv('o_signed'),remarks:fv('o_rem')};
+  const data={contract_date:fv('o_date')||null,exporter:fv('o_exp'),contract_no:fv('o_cno'),
+    buyer:fv('o_buyer'),buyer_port:fv('o_bport'),product:fv('o_prod'),qty:fv('o_qty')||null,
+    currency:fv('o_cur'),unit_price:fv('o_price')||null,payment_terms:fv('o_pterm'),
+    delivery_terms:fv('o_dterm'),bag_marking:fv('o_bmark'),bag_type:fv('o_btype'),
+    signed_contract:fv('o_signed'),remarks:fv('o_rem')};
   if(!id)data.id=uid('ORD');
   await saveRec('orders',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// B. RAW MATERIAL PURCHASES — with contract query window
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// B. RAW MATERIAL PURCHASES
+// ══════════════════════════════════════════════════════════
+let _pSelC=null;
 function renderPurchases(){
-  const rows=(S.recs.purchases||[]).filter(o=>!S.search||[o.vendor,o.commodity,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search vendor, commodity…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderPurchases()"><button class="pri" onclick="openPurchaseModal()">+ New Purchase</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Vendor','Commodity','Qty (MT)','Pending Qty','Price (INR)','Price Type','Broker','Bag Marking','Payment Terms','Linked Contract','Actions'],r=>`<tr>
-    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
-    <td>${r.purchase_date||'—'}</td>
+  const rows=S.recs.purchases.filter(o=>!S.search||[o.vendor,o.commodity,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search vendor, commodity, contract…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderPurchases()"><button class="pri" onclick="openPurchaseModal()">+ New Purchase</button></div>`+
+  `<div class="card">`+tbl(rows,['ID','Date','Vendor','Commodity','Qty (MT)','Pending Qty','Price (INR)','Price Type','Broker','Bag Marking','Contract','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td><td>${r.purchase_date||'—'}</td>
     <td><strong>${r.vendor||'—'}</strong></td><td>${r.commodity||'—'}</td>
     <td class="mono">${fmtN(r.qty)}</td>
     <td class="mono ${Number(r.pending_qty)>0?'dok':'dbad'}">${fmtN(r.pending_qty||r.qty)}</td>
-    <td class="mono">₹${fmt(r.price_inr)}</td>
-    <td>${r.price_type||'—'}</td><td>${r.broker||'—'}</td><td>${r.bag_marking||'—'}</td>
-    <td>${r.payment_terms||'—'}</td>
+    <td class="mono">₹${fmt(r.price_inr)}</td><td>${r.price_type||'—'}</td>
+    <td>${r.broker||'—'}</td><td>${r.bag_marking||'—'}</td>
     <td><span class="mono" style="color:var(--blue)">${r.linked_contract_no||'—'}</span></td>
-    <td><div class="acell"><button class="sm" onclick="openPurchaseModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('purchases','${r.id}')">Del</button></div></td>
+    <td><div class="acell"><button class="sm" onclick="openPurchaseModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('purchases','${r.id}')">Del</button></div></td>
   </tr>`,'Click + New Purchase to begin.')+`</div>`;
 }
-let _pSelContract=null;
 function selPurchaseContract(id){
-  _pSelContract=id;
+  _pSelC=id;
   const c=S.recs.orders.find(o=>o.id===id);
-  if(c){
-    const cn=document.getElementById('p_contract');
-    const prod=document.getElementById('p_comm');
-    const bmark=document.getElementById('p_bmark');
-    if(cn){cn.value=c.contract_no||'';cn.className='fgrp auto-filled';}
-    if(prod&&!prod.value)prod.value=c.product||'';
-    if(bmark&&!bmark.value)bmark.value=c.bag_marking||'';
-  }
+  if(c){af('p_contract',c.contract_no||'');
+    const pr=document.getElementById('p_comm');if(pr&&!pr.value)pr.value=c.product||'';
+    const bm=document.getElementById('p_bmark');if(bm&&!bm.value)bm.value=c.bag_marking||'';}
   S.qSearch.contract='';
-  openPurchaseModal(S._editingPurchaseId);
+  openPurchaseModal(S._editIds.purchase);
 }
 function openPurchaseModal(id){
-  S._editingPurchaseId=id||null;
-  const r=id?(S.recs.purchases||[]).find(o=>o.id===id):{};
-  if(!id&&_pSelContract===undefined)_pSelContract=null;
-  const selId=_pSelContract||(id?r.linked_contract_id:null);
-  const priceTypes=['Ex-Factory','Delivered — Buyer Location','Delivered — Port / CFS','Delivered — Other Location'];
+  S._editIds.purchase=id||null;
+  const r=id?S.recs.purchases.find(o=>o.id===id):{};
+  const selId=_pSelC||(id?r.linked_contract_id:null);
+  const priceTypes=['Ex-Factory','Delivered — Port/CFS','Delivered — Other Location'];
+  _reRenderFn=()=>openPurchaseModal(id);
   const body=`
-    ${contractQueryWindow(selId,'selPurchaseContract')}
+    ${contractQWin(selId,'selPurchaseContract')}
     <div class="fg">
-      ${sec('Purchase Details')}
-      <div class="fgrp"><label>Contract No. (auto-filled on selection)</label><input id="p_contract" value="${r.linked_contract_no||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract No. (auto)</label><input id="p_contract" value="${r.linked_contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Purchase Date</label><input type="date" id="p_date" value="${r.purchase_date||today()}"></div>
       <div class="fgrp"><label>Vendor Name</label><input id="p_vendor" value="${r.vendor||''}"></div>
       ${dlf('Commodity','p_comm','p_comm_dl',S.masters.products,false,r.commodity||'')}
       <div class="fgrp"><label>Quantity (MT)</label><input type="number" id="p_qty" value="${r.qty||''}"></div>
       <div class="fgrp"><label>Pending Qty (MT)</label><input type="number" id="p_pqty" value="${r.pending_qty!==undefined?r.pending_qty:r.qty||''}"></div>
-      <div class="fgrp"><label>Price (INR / MT)</label><input type="number" id="p_price" value="${r.price_inr||''}"></div>
+      <div class="fgrp"><label>Price (INR/MT)</label><input type="number" id="p_price" value="${r.price_inr||''}"></div>
       <div class="fgrp"><label>Price Type</label><select id="p_ptype">${sel(priceTypes,r.price_type||'Ex-Factory')}</select></div>
-      <div class="fgrp"><label>Delivery Location (if delivered)</label><input id="p_dloc" value="${r.delivery_location||''}"></div>
+      <div class="fgrp"><label>Delivery Location (if applicable)</label><input id="p_dloc" value="${r.delivery_location||''}"></div>
       <div class="fgrp"><label>Broker Name</label><input id="p_broker" value="${r.broker||''}"></div>
       <div class="fgrp"><label>Bag Marking</label><input id="p_bmark" value="${r.bag_marking||''}"></div>
       <div class="fgrp"><label>Quality Grade</label><input id="p_grade" value="${r.quality_grade||''}"></div>
@@ -720,55 +657,50 @@ function openPurchaseModal(id){
 }
 async function savePurchase(id){
   const qty=parseFloat(fv('p_qty'))||null;
-  const pqty=fv('p_pqty')!==''?parseFloat(fv('p_pqty')):(qty||null);
-  const data={purchase_date:fv('p_date')||null,vendor:fv('p_vendor'),commodity:fv('p_comm'),qty,pending_qty:pqty,price_inr:fv('p_price')||null,price_type:fv('p_ptype'),delivery_location:fv('p_dloc'),broker:fv('p_broker'),bag_marking:fv('p_bmark'),quality_grade:fv('p_grade'),payment_terms:fv('p_pterm'),linked_contract_no:fv('p_contract'),linked_contract_id:_pSelContract||null,remarks:fv('p_rem')};
+  const data={purchase_date:fv('p_date')||null,vendor:fv('p_vendor'),commodity:fv('p_comm'),
+    qty,pending_qty:parseFloat(fv('p_pqty'))||qty,price_inr:fv('p_price')||null,
+    price_type:fv('p_ptype'),delivery_location:fv('p_dloc'),broker:fv('p_broker'),
+    bag_marking:fv('p_bmark'),quality_grade:fv('p_grade'),payment_terms:fv('p_pterm'),
+    linked_contract_no:fv('p_contract'),linked_contract_id:_pSelC||null,remarks:fv('p_rem')};
   if(!id)data.id=uid('PUR');
-  _pSelContract=null;
+  _pSelC=null;_reRenderFn=null;
   await saveRec('purchases',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// C. CONTAINER BOOKINGS — with contract query window
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// C. CONTAINER BOOKINGS
+// ══════════════════════════════════════════════════════════
+let _cSelC=null;
 function renderContainers(){
-  const rows=(S.recs.containers||[]).filter(o=>!S.search||[o.booking_ref,o.shipping_line,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search booking ref, line…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderContainers()"><button class="pri" onclick="openContainerModal()">+ New Booking</button></div>`+
-  `<div class="card">`+tbl(rows,['Booking ID','Date','Shipping Line','Forwarder','Type','Qty','Booking Ref','Linked Contract','ETD','POL','POD','Rate','Total Freight','Status','Actions'],r=>`<tr>
-    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
-    <td>${r.booking_date||'—'}</td>
-    <td>${r.shipping_line||'—'}</td><td>${r.forwarder||'—'}</td>
-    <td>${r.container_type||'—'}</td>
+  const rows=S.recs.containers.filter(o=>!S.search||[o.booking_ref,o.shipping_line,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search booking ref, line, contract…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderContainers()"><button class="pri" onclick="openContainerModal()">+ New Booking</button></div>`+
+  `<div class="card">`+tbl(rows,['Booking ID','Date','Shipping Line','Forwarder','Type','Qty','Booking Ref','Contract','ETD','POL','POD','Status','Actions'],r=>`<tr>
+    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td><td>${r.booking_date||'—'}</td>
+    <td>${r.shipping_line||'—'}</td><td>${r.forwarder||'—'}</td><td>${r.container_type||'—'}</td>
     <td class="mono">${r.num_containers||'—'}</td>
     <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
     <td class="mono" style="color:var(--green)">${r.linked_contract_no||'—'}</td>
     <td>${r.etd||'—'}</td><td>${r.pol||'—'}</td><td>${r.pod||'—'}</td>
-    <td class="mono">$${fmt(r.freight_rate)}</td>
-    <td class="mono">$${fmt((r.num_containers||0)*(r.freight_rate||0))}</td>
     <td>${bdg(r.status||'Booked')}</td>
-    <td><div class="acell"><button class="sm" onclick="openContainerModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('containers','${r.id}')">Del</button></div></td>
+    <td><div class="acell"><button class="sm" onclick="openContainerModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('containers','${r.id}')">Del</button></div></td>
   </tr>`,'No container bookings yet.')+`</div>`;
 }
-let _cSelContract=null;
 function selBookingContract(id){
-  _cSelContract=id;
+  _cSelC=id;
   const c=S.recs.orders.find(o=>o.id===id);
-  if(c){
-    const cn=document.getElementById('c_contract');
-    if(cn){cn.value=c.contract_no||'';cn.className='auto-filled';}
-  }
+  if(c){af('c_contract',c.contract_no||'');}
   S.qSearch.contract='';
-  openContainerModal(S._editingContainerId);
+  openContainerModal(S._editIds.container);
 }
 function openContainerModal(id){
-  S._editingContainerId=id||null;
-  const r=id?(S.recs.containers||[]).find(o=>o.id===id):{};
-  if(!id&&_cSelContract===undefined)_cSelContract=null;
-  const selId=_cSelContract||(id?r.linked_contract_id:null);
+  S._editIds.container=id||null;
+  const r=id?S.recs.containers.find(o=>o.id===id):{};
+  const selId=_cSelC||(id?r.linked_contract_id:null);
+  _reRenderFn=()=>openContainerModal(id);
   const body=`
-    ${contractQueryWindow(selId,'selBookingContract')}
+    ${contractQWin(selId,'selBookingContract')}
     <div class="fg">
-      ${sec('Booking Details')}
-      <div class="fgrp"><label>Linked Contract No. (auto-filled)</label><input id="c_contract" value="${r.linked_contract_no||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Linked Contract (auto)</label><input id="c_contract" value="${r.linked_contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Booking Date</label><input type="date" id="c_date" value="${r.booking_date||today()}"></div>
       <div class="fgrp"><label>Shipping Line</label><input id="c_line" value="${r.shipping_line||''}"></div>
       <div class="fgrp"><label>Forwarder Name</label><input id="c_fwd" value="${r.forwarder||''}"></div>
@@ -778,273 +710,330 @@ function openContainerModal(id){
       <div class="fgrp"><label>Booking Ref No.</label><input id="c_ref" value="${r.booking_ref||''}"></div>
       <div class="fgrp"><label>ETD</label><input type="date" id="c_etd" value="${r.etd||''}"></div>
       <div class="fgrp"><label>ETA</label><input type="date" id="c_eta" value="${r.eta||''}"></div>
-      <div class="fgrp"><label>POL (Port of Loading)</label><input id="c_pol" value="${r.pol||''}"></div>
-      <div class="fgrp"><label>POD (Port of Discharge)</label><input id="c_pod" value="${r.pod||''}"></div>
-      <div class="fgrp"><label>Freight Rate / Container (USD)</label><input type="number" id="c_rate" value="${r.freight_rate||''}"></div>
+      <div class="fgrp"><label>POL</label><input id="c_pol" value="${r.pol||''}"></div>
+      <div class="fgrp"><label>POD</label><input id="c_pod" value="${r.pod||''}"></div>
+      <div class="fgrp"><label>Freight Rate/Container (USD)</label><input type="number" id="c_rate" value="${r.freight_rate||''}"></div>
       <div class="fgrp"><label>Status</label><select id="c_status">${sel(['Booked','Confirmed','Loaded','Sailed','Completed'],r.status||'Booked')}</select></div>
     </div>`;
   openModal(mw(id?'Edit Booking':'New Container Booking',body,id?`saveContainer('${id}')`:'saveContainer()',true));
 }
 async function saveContainer(id){
-  const data={booking_date:fv('c_date')||null,shipping_line:fv('c_line'),forwarder:fv('c_fwd'),vessel:fv('c_vessel'),container_type:fv('c_type'),num_containers:parseInt(fv('c_num'))||1,booking_ref:fv('c_ref')||null,linked_contract_no:fv('c_contract')||null,linked_contract_id:_cSelContract||null,etd:fv('c_etd')||null,eta:fv('c_eta')||null,pol:fv('c_pol'),pod:fv('c_pod'),freight_rate:fv('c_rate')||null,status:fv('c_status')};
+  const data={booking_date:fv('c_date')||null,shipping_line:fv('c_line'),forwarder:fv('c_fwd'),
+    vessel:fv('c_vessel'),container_type:fv('c_type'),num_containers:parseInt(fv('c_num'))||1,
+    booking_ref:fv('c_ref')||null,linked_contract_no:fv('c_contract')||null,
+    linked_contract_id:_cSelC||null,etd:fv('c_etd')||null,eta:fv('c_eta')||null,
+    pol:fv('c_pol'),pod:fv('c_pod'),freight_rate:fv('c_rate')||null,status:fv('c_status')};
   if(!id)data.id=uid('BKG');
-  _cSelContract=null;
+  _cSelC=null;_reRenderFn=null;
   await saveRec('containers',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// D. TRANSPORTERS & PLOT — with booking query window
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// D. TRANSPORTERS & PLOT (with booking query + multi-plot + deadline)
+// ══════════════════════════════════════════════════════════
+let _tSelB=null;
 function renderTransporters(){
-  const rows=(S.recs.transporters||[]).filter(o=>!S.search||[o.transporter,o.booking_ref,o.assignment_id].join(' ').toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search transporter, booking ref…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderTransporters()"><button class="pri" onclick="openTransporterModal()">+ Assign Transporter</button></div>`+
-  `<div class="card">`+tbl(rows,['Assignment ID','Date','Transporter','Vehicle No.','Booking Ref','Contract Ref','Containers','Rate','Total','Plot Name','Plot Charges','Paid By','Plot Pay Date','Status','Actions'],r=>`<tr>
-    <td><span class="mono" style="color:var(--purple)">${r.assignment_id||r.id}</span></td>
-    <td>${r.transport_date||'—'}</td>
-    <td><strong>${r.transporter||'—'}</strong></td><td>${r.vehicle_no||'—'}</td>
-    <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
-    <td class="mono" style="color:var(--green)">${r.order_id||'—'}</td>
-    <td class="mono">${r.num_containers||'—'}</td>
-    <td class="mono">₹${fmt(r.rate_per_container)}</td>
-    <td class="mono">₹${fmt((r.num_containers||0)*(r.rate_per_container||0))}</td>
-    <td>${r.plot_name||'—'}</td>
-    <td class="mono">₹${fmt(r.plot_charges)}</td>
-    <td>${r.plot_paid_by||'—'}</td><td>${r.plot_payment_date||'—'}</td>
-    <td>${bdg(r.status||'Assigned')}</td>
-    <td><div class="acell"><button class="sm" onclick="openTransporterModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('transporters','${r.id}')">Del</button></div></td>
-  </tr>`,'No transporters assigned yet.')+`</div>`;
+  const rows=S.recs.transporters.filter(o=>!S.search||[o.transporter,o.booking_ref,o.assignment_id].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const today2=new Date();
+  const warnings=rows.filter(r=>{
+    if(!r.gate_in_deadline)return false;
+    const diff=Math.round((new Date(r.gate_in_deadline)-today2)/86400000);
+    return diff<=2;
+  });
+  return`
+  ${warnings.length?`<div class="alert-banner alert-amber" style="display:block">
+    <div class="alert-title">⏰ Gate-In Deadline Warning — ${warnings.length} assignment${warnings.length>1?'s':''} need attention</div>
+    <div class="alert-sub">${warnings.map(r=>{const d=Math.round((new Date(r.gate_in_deadline)-today2)/86400000);return`${r.assignment_id||r.id}: ${d<0?'OVERDUE':'due '+r.gate_in_deadline} (${r.booking_ref||'—'})`;}).join(' · ')}</div>
+  </div>`:''}
+  <div class="sbar"><input placeholder="Search transporter, booking ref, assignment…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderTransporters()"><button class="pri" onclick="openTransporterModal()">+ Assign Transporter</button></div>`+
+  `<div class="card">`+tbl(rows,['Assignment ID','Date','Transporter','Booking Ref','Contract','Containers (manual)','Pickup Date','Gate-In Deadline','Plots','Status','Actions'],r=>{
+    const plots=r.plots?JSON.parse(r.plots||'[]'):[];
+    const dlDiff=r.gate_in_deadline?Math.round((new Date(r.gate_in_deadline)-today2)/86400000):null;
+    const dlCls=dlDiff===null?'':dlDiff<0?'dbad':dlDiff<=2?'' :'dok';
+    return`<tr>
+      <td><span class="mono" style="color:var(--purple)">${r.assignment_id||r.id}</span></td>
+      <td>${r.transport_date||'—'}</td><td><strong>${r.transporter||'—'}</strong></td>
+      <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
+      <td class="mono" style="color:var(--green)">${r.order_id||'—'}</td>
+      <td class="mono">${r.num_containers_actual||'—'}</td>
+      <td>${r.pickup_date||'—'}</td>
+      <td class="${dlCls}" style="font-family:var(--mono);font-size:11px">${r.gate_in_deadline||'—'}${dlDiff!==null&&dlDiff<=2?` ⚠`:''}${dlDiff!==null&&dlDiff<0?` OVERDUE`:''}</td>
+      <td><span class="badge bb">${plots.length} plot${plots.length!==1?'s':''}</span></td>
+      <td>${bdg(r.status||'Assigned')}</td>
+      <td><div class="acell"><button class="sm" onclick="openTransporterModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('transporters','${r.id}')">Del</button></div></td>
+    </tr>`;
+  },'No transporters assigned yet.')+`</div>`;
 }
-let _tSelBooking=null;
 function selTransBooking(id){
-  _tSelBooking=id;
+  _tSelB=id;
   const c=S.recs.containers.find(o=>o.id===id);
-  if(c){
-    const br=document.getElementById('t_booking');
-    const or=document.getElementById('t_order');
-    const nc=document.getElementById('t_num');
-    if(br){br.value=c.booking_ref||'';br.className='auto-filled';}
-    if(or){or.value=c.linked_contract_no||'';or.className='auto-filled';}
-    if(nc&&!nc.value)nc.value=c.num_containers||1;
-  }
+  if(c){af('t_booking',c.booking_ref||'');af('t_order',c.linked_contract_no||'');af('t_pol',c.pol||'');af('t_pod',c.pod||'');af('t_line',c.shipping_line||'');}
   S.qSearch.booking='';
-  openTransporterModal(S._editingTransId);
+  openTransporterModal(S._editIds.transporter);
 }
 function openTransporterModal(id){
-  S._editingTransId=id||null;
-  const r=id?(S.recs.transporters||[]).find(o=>o.id===id):{};
-  if(!id&&_tSelBooking===undefined)_tSelBooking=null;
-  const selId=_tSelBooking||(id?r.booking_id:null);
+  S._editIds.transporter=id||null;
+  const r=id?S.recs.transporters.find(o=>o.id===id):{};
+  const selId=_tSelB||(id?r.booking_id:null);
   const assignId=id?r.assignment_id:uid('LA');
+  if(!id&&!S.plots.length){S.plots=[{id:1,name:'',containers:'',charges:'',payDate:'',paidBy:'Direct by Us'}];S.plotCounter=1;}
+  else if(id&&r.plots){try{S.plots=JSON.parse(r.plots);}catch(e){S.plots=[];}}
+  _reRenderFn=()=>openTransporterModal(id);
+  const today2=new Date();
+  const deadline=document.getElementById('t_deadline')?.value||r.gate_in_deadline||'';
   const body=`
-    ${bookingQueryWindow(selId,'selTransBooking')}
+    ${bookingQWin(selId,'selTransBooking')}
     <div class="fg">
-      ${sec('Transporter Details')}
-      <div class="fgrp"><label>Booking Ref (auto-filled)</label><input id="t_booking" value="${r.booking_ref||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
-      <div class="fgrp"><label>Contract Ref (auto-filled)</label><input id="t_order" value="${r.order_id||''}" readonly class="auto-filled" style="font-family:var(--mono)"></div>
-      <div class="fgrp"><label>Loading Assignment ID (auto)</label><input id="t_assign" value="${assignId}" style="font-family:var(--mono);color:var(--purple)"></div>
+      ${msec('Auto-filled from Booking')}
+      <div class="fgrp"><label>Booking Ref (auto)</label><input id="t_booking" value="${r.booking_ref||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract Ref (auto)</label><input id="t_order" value="${r.order_id||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>POL (auto)</label><input id="t_pol" value="${r.pol||''}" readonly class="af"></div>
+      <div class="fgrp"><label>POD (auto)</label><input id="t_pod" value="${r.pod||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Shipping Line (auto)</label><input id="t_line" value="${r.shipping_line||''}" readonly class="af"></div>
+      ${msec('Transporter Details')}
+      <div class="fgrp"><label>Assignment ID (auto)</label><input id="t_assign" value="${assignId}" style="font-family:var(--mono);color:var(--purple)"></div>
       <div class="fgrp"><label>Date</label><input type="date" id="t_date" value="${r.transport_date||today()}"></div>
       ${dlf('Transporter Name','t_name','t_name_dl',S.masters.transporters,false,r.transporter||'')}
-      <div class="fgrp"><label>Vehicle / Truck No.</label><input id="t_vehicle" value="${r.vehicle_no||''}"></div>
-      <div class="fgrp"><label>No. of Containers</label><input type="number" id="t_num" value="${r.num_containers||1}"></div>
-      <div class="fgrp"><label>Route (From → To)</label><input id="t_route" value="${r.route||''}"></div>
-      <div class="fgrp"><label>Rate Per Container (INR)</label><input type="number" id="t_rate" value="${r.rate_per_container||''}"></div>
-      ${sec('Plot Charges')}
-      <div class="fgrp"><label>Plot Name / Yard</label><input id="t_plotname" value="${r.plot_name||''}"></div>
-      <div class="fgrp"><label>Plot Charges (INR)</label><input type="number" id="t_plot" value="${r.plot_charges||0}"></div>
-      <div class="fgrp"><label>Plot Paid By</label><select id="t_plotby">${sel(['Direct by Us','By Transporter','Shared'],r.plot_paid_by||'Direct by Us')}</select></div>
-      <div class="fgrp"><label>Plot Payment Date</label><input type="date" id="t_plotdate" value="${r.plot_payment_date||''}"></div>
+      <div class="fgrp"><label>No. of Containers (manual)</label><input type="number" id="t_num" placeholder="Actual no. being picked up" value="${r.num_containers_actual||''}"></div>
+      ${msec('Gate-In Deadline Calculator')}
+      <div class="fgrp"><label>Pickup Date</label><input type="date" id="t_pickup" value="${r.pickup_date||today()}" oninput="calcDeadline()"></div>
+      <div class="fgrp"><label>Free Time at POD (days)</label><input type="number" id="t_freetime" value="${r.free_time_pod||''}" placeholder="e.g. 10" oninput="calcDeadline()"></div>
+      <div class="fgrp"><label>Cut-Off Date (Shipping Line)</label><input type="date" id="t_cutoff" value="${r.cutoff_date||''}" placeholder="Cargo cut-off date"></div>
+      <div class="fgrp"><label>Gate-In Deadline (auto-calc)</label><input id="t_deadline" value="${r.gate_in_deadline||''}" readonly style="font-family:var(--mono)"></div>
+      ${msec('Plot / Yard Charges')}
+    </div>
+    <div style="margin-bottom:8px">${renderPlots()}</div>
+    <button class="add-link" onclick="addPlot();reRenderModal()">＋ Add Plot / Yard</button>
+    <div class="fg" style="margin-top:10px">
       <div class="fgrp"><label>Status</label><select id="t_status">${sel(['Assigned','In Transit','Delivered','Completed'],r.status||'Assigned')}</select></div>
     </div>`;
   openModal(mw(id?'Edit Transporter':'Assign Transporter',body,id?`saveTransporter('${id}')`:'saveTransporter()',true));
+  setTimeout(()=>calcDeadline(),100);
 }
+function calcDeadline(){
+  const p=document.getElementById('t_pickup')?.value;
+  const ft=parseInt(document.getElementById('t_freetime')?.value)||0;
+  const el=document.getElementById('t_deadline');
+  const ban=document.getElementById('trans-deadline-banner');
+  if(!p||!ft){if(el)el.value='';return;}
+  const d=new Date(p);d.setDate(d.getDate()+ft-1);
+  const dl=d.toISOString().slice(0,10);
+  if(el){el.value=dl;
+    const diff=Math.round((d-new Date())/86400000);
+    el.style.color=diff<0?'var(--red)':diff<=2?'var(--amber)':'var(--green)';}
+}
+function renderPlots(){
+  if(!S.plots.length)return`<div style="font-size:11px;color:var(--txt3);padding:4px 0">No plots added yet.</div>`;
+  return S.plots.map((p,i)=>`
+    <div class="plot-row">
+      <div class="plot-hdr"><span class="plot-lbl">Plot / Yard ${i+1}</span><button class="ghost xs" onclick="removePlot(${p.id});reRenderModal()">✕</button></div>
+      <div class="plot-grid">
+        <div class="fgrp"><label>Plot / Yard Name</label><input placeholder="e.g. KPL Yard B" value="${p.name||''}" oninput="updatePlot(${p.id},'name',this.value)"></div>
+        <div class="fgrp"><label>No. of Containers</label><input type="number" placeholder="0" value="${p.containers||''}" oninput="updatePlot(${p.id},'containers',this.value)"></div>
+        <div class="fgrp"><label>Plot Charges (INR)</label><input type="number" placeholder="0.00" value="${p.charges||''}" oninput="updatePlot(${p.id},'charges',this.value)"></div>
+        <div class="fgrp"><label>Payment Date</label><input type="date" value="${p.payDate||''}" oninput="updatePlot(${p.id},'payDate',this.value)"></div>
+        <div class="fgrp"><label>Paid By</label><select onchange="updatePlot(${p.id},'paidBy',this.value)">
+          <option${p.paidBy==='Direct by Us'?' selected':''}>Direct by Us</option>
+          <option${p.paidBy==='By Transporter'?' selected':''}>By Transporter</option>
+          <option${p.paidBy==='Shared'?' selected':''}>Shared</option>
+        </select></div>
+      </div>
+    </div>`).join('');
+}
+function addPlot(){S.plotCounter++;S.plots.push({id:S.plotCounter,name:'',containers:'',charges:'',payDate:'',paidBy:'Direct by Us'});}
+function removePlot(id){S.plots=S.plots.filter(p=>p.id!==id);}
+function updatePlot(id,f,v){const p=S.plots.find(x=>x.id===id);if(p)p[f]=v;}
 async function saveTransporter(id){
-  const data={assignment_id:fv('t_assign'),transport_date:fv('t_date')||null,transporter:fv('t_name'),vehicle_no:fv('t_vehicle'),booking_ref:fv('t_booking')||null,booking_id:_tSelBooking||null,order_id:fv('t_order')||null,num_containers:parseInt(fv('t_num'))||1,route:fv('t_route'),rate_per_container:fv('t_rate')||null,plot_name:fv('t_plotname'),plot_charges:fv('t_plot')||0,plot_paid_by:fv('t_plotby'),plot_payment_date:fv('t_plotdate')||null,status:fv('t_status')};
+  const data={assignment_id:fv('t_assign'),transport_date:fv('t_date')||null,transporter:fv('t_name'),
+    booking_ref:fv('t_booking')||null,booking_id:_tSelB||null,order_id:fv('t_order')||null,
+    pol:fv('t_pol'),pod:fv('t_pod'),shipping_line:fv('t_line'),
+    num_containers_actual:fv('t_num')||null,pickup_date:fv('t_pickup')||null,
+    free_time_pod:fv('t_freetime')||null,cutoff_date:fv('t_cutoff')||null,
+    gate_in_deadline:document.getElementById('t_deadline')?.value||null,
+    plots:JSON.stringify(S.plots),status:fv('t_status')};
   if(!id)data.id=uid('TRN');
-  _tSelBooking=null;
+  _tSelB=null;S.plots=[];S.plotCounter=0;_reRenderFn=null;
   await saveRec('transporters',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// E. LOADING ASSIGNMENT — assignment query window + flexible groups
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// E. LOADING ASSIGNMENT (groups builder)
+// ══════════════════════════════════════════════════════════
+let _lSelA=null,_lSelBref='';
 function renderLoading(){
-  const rows=(S.recs.loading||[]).filter(o=>!S.search||[o.assignment_id,o.booking_ref].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const rows=S.recs.loading.filter(o=>!S.search||[o.assignment_id,o.booking_ref].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Search assignment ID, booking ref…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderLoading()"><button class="pri" onclick="openLoadingModal()">+ New Loading Assignment</button></div>`+
-  `<div class="card">`+tbl(rows,['Assignment ID','Date','Booking Ref','Status','Groups','Total Containers','Total Qty (MT)','Actions'],r=>{
+  `<div class="card">`+tbl(rows,['Assignment ID','Date','Booking Ref','Groups','Containers','Total Qty (MT)','Status','Actions'],r=>{
     let grps=[];try{grps=JSON.parse(r.groups||'[]');}catch(e){}
-    const totalCon=grps.reduce((s,g)=>s+g.rows.length,0);
-    const totalQty=grps.reduce((s,g)=>s+g.rows.reduce((ss,rr)=>ss+(Number(rr.qty)||0),0),0);
+    const totC=grps.reduce((s,g)=>s+g.rows.length,0);
+    const totQ=grps.reduce((s,g)=>s+g.rows.reduce((ss,rr)=>ss+(Number(rr.qty)||0),0),0);
     return`<tr>
       <td><span class="mono" style="color:var(--purple)">${r.assignment_id||r.id}</span></td>
       <td>${r.loading_date||'—'}</td>
       <td class="mono" style="color:var(--blue)">${r.booking_ref||'—'}</td>
+      <td class="mono">${grps.length}</td><td class="mono">${totC}</td>
+      <td class="mono">${fmtN(totQ)}</td>
       <td>${bdg(r.status||'Scheduled')}</td>
-      <td class="mono">${grps.length}</td>
-      <td class="mono">${totalCon}</td>
-      <td class="mono">${fmtN(totalQty)}</td>
-      <td><div class="acell"><button class="sm" onclick="openLoadingModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('loading','${r.id}')">Del</button></div></td>
+      <td><div class="acell"><button class="sm" onclick="openLoadingModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('loading','${r.id}')">Del</button></div></td>
     </tr>`;
   },'No loading assignments yet.')+`</div>`;
 }
-let _lSelAssignment=null,_lSelBookingRef='';
-function selAssignment(aid,bref,orderRef,numCon){
-  _lSelAssignment=aid;_lSelBookingRef=bref||'';
+function selAssignment(aid,bref,cref){
+  _lSelA=aid;_lSelBref=bref||'';
+  af('l_aid',aid);af('l_bref',bref||'');
   S.qSearch.assignment='';
-  openLoadingModal(S._editingLoadId);
+  openLoadingModal(S._editIds.loading);
 }
 function openLoadingModal(id){
-  S._editingLoadId=id||null;
-  const r=id?(S.recs.loading||[]).find(o=>o.id===id):{};
-  if(id){
-    try{S.groups=JSON.parse(r.groups||'[]');}catch(e){S.groups=[];}
-  } else if(!S.groups){S.groups=[];}
-  const selAid=_lSelAssignment||(id?r.assignment_id:null);
+  S._editIds.loading=id||null;
+  const r=id?S.recs.loading.find(o=>o.id===id):{};
+  if(id){try{S.groups=JSON.parse(r.groups||'[]');}catch(e){S.groups=[];}}
+  else if(!S.groups)S.groups=[];
+  _reRenderFn=()=>openLoadingModal(id);
   const body=`
-    ${assignmentQueryWindow(selAid,'selAssignment')}
+    ${assignmentQWin(_lSelA||(id?r.assignment_id:null),'selAssignment')}
     <div class="fg">
-      <div class="fgrp"><label>Assignment ID (auto-filled)</label><input id="l_aid" value="${r.assignment_id||_lSelAssignment||''}" style="font-family:var(--mono);color:var(--purple)"></div>
-      <div class="fgrp"><label>Booking Ref (auto-filled)</label><input id="l_bref" value="${r.booking_ref||_lSelBookingRef||''}" class="auto-filled" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Assignment ID</label><input id="l_aid" value="${r.assignment_id||_lSelA||''}" style="font-family:var(--mono);color:var(--purple)"></div>
+      <div class="fgrp"><label>Booking Ref (auto)</label><input id="l_bref" value="${r.booking_ref||_lSelBref||''}" readonly class="af" style="font-family:var(--mono)"></div>
       <div class="fgrp"><label>Loading Date</label><input type="date" id="l_date" value="${r.loading_date||today()}"></div>
       <div class="fgrp"><label>Status</label><select id="l_status">${sel(['Scheduled','In Progress','Completed'],r.status||'Scheduled')}</select></div>
     </div>
     <div class="divider"></div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em">Container Groups</div>
-      <button class="success sm" onclick="addGroup()">＋ Add Group</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em">Container Groups</div>
+      <button class="suc sm" onclick="addGroup();reRenderModal()">＋ Add Group</button>
     </div>
-    <div id="groups-render">${renderGroups()}</div>
-    <div class="fgrp full" style="margin-top:12px"><label>Remarks</label><textarea id="l_rem">${r.remarks||''}</textarea></div>`;
-  openModal(mw(id?'Edit Loading Assignment':'New Loading Assignment',body,id?`saveLoading('${id}')`:'saveLoading()',true));
+    <div id="grps-render">${renderGroups()}</div>
+    <div class="fgrp full" style="margin-top:10px"><label>Remarks</label><textarea id="l_rem">${r.remarks||''}</textarea></div>`;
+  openModal(mw(id?'Edit Loading':'New Loading Assignment',body,id?`saveLoading('${id}')`:'saveLoading()',true));
+}
+function addGroup(){S.groupCounter++;S.groups.push({id:S.groupCounter,name:`Group ${S.groupCounter}`,surveyor:'',rows:[]});}
+function removeGroup(gi){S.groups=S.groups.filter(g=>g.id!==gi);reRenderModal();}
+function addRow(gi){const g=S.groups.find(x=>x.id===gi);if(g)g.rows.push({cno:'',vno:'',qty:'',from:'',to:'',vendor:'',bagMarking:'',surveyor:'',rate:'',purchaseId:'',sovr:false});reRenderModal();}
+function removeRow(gi,ri){const g=S.groups.find(x=>x.id===gi);if(g)g.rows.splice(ri,1);reRenderModal();}
+function updGrp(gi,f,v){const g=S.groups.find(x=>x.id===gi);if(g)g[f]=v;}
+function updRow(gi,ri,f,v){const g=S.groups.find(x=>x.id===gi);if(g&&g.rows[ri])g.rows[ri][f]=v;}
+function toggleSovr(gi,ri){const g=S.groups.find(x=>x.id===gi);if(g&&g.rows[ri]){g.rows[ri].sovr=!g.rows[ri].sovr;reRenderModal();}}
+let _vendorTarget={gi:null,ri:null};
+function openVendorPicker(gi,ri){
+  _vendorTarget={gi,ri};S.qSearch.vendor='';
+  const q=S.qSearch.vendor||'';
+  const list=S.recs.purchases.filter(p=>Number(p.pending_qty||p.qty||0)>0&&
+    (!q||[p.vendor,p.commodity,p.bag_marking,p.linked_contract_no].join(' ').toLowerCase().includes(q.toLowerCase())));
+  const vbody=`<div class="modal" style="width:520px"><h3>Select Vendor Purchase Lot</h3>
+    <input class="qwin-search" style="width:100%;margin-bottom:10px" placeholder="Search vendor, product, bag marking…" value="${q}" oninput="S.qSearch.vendor=this.value;refreshVendorPicker(${gi},${ri})">
+    <div style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:5px">
+      ${list.length?list.map(p=>`
+        <div class="qcard" onclick="pickVendor('${p.id}')">
+          <div class="qcard-top">
+            <div><div class="qcard-id" style="color:var(--amber)">${p.vendor||'—'}</div><div class="qcard-sub">${p.commodity||'—'}</div></div>
+            <span class="badge ba">${fmtN(p.pending_qty||p.qty)} MT pending</span>
+          </div>
+          <div class="bmark"><span class="bmark-lbl">Bag Marking</span><span class="bmark-val">${p.bag_marking||'—'}</span></div>
+          <div class="qtags" style="margin-top:5px">
+            <span class="qtag">₹${fmt(p.price_inr)}/MT</span>
+            <span class="qtag">${p.linked_contract_no||'—'}</span>
+          </div>
+        </div>`).join(''):`<div class="empty">No pending vendor lots found.</div>`}
+    </div>
+    <div class="mac"><button onclick="closeVendorPicker()">Cancel</button></div>
+  </div>`;
+  document.getElementById('mroot').innerHTML=`<div class="moverlay" onclick="if(event.target===this)closeVendorPicker()">${vbody}</div>`;
+}
+function refreshVendorPicker(gi,ri){openVendorPicker(gi,ri);}
+function closeVendorPicker(){openLoadingModal(S._editIds.loading);}
+function pickVendor(pid){
+  const p=S.recs.purchases.find(x=>x.id===pid);
+  const{gi,ri}=_vendorTarget;
+  const g=S.groups.find(x=>x.id===gi);
+  if(g&&g.rows[ri]){g.rows[ri].vendor=p.vendor||'';g.rows[ri].bagMarking=p.bag_marking||'';g.rows[ri].purchaseId=pid;}
+  openLoadingModal(S._editIds.loading);
+}
+const COLS='1.1fr 1fr 68px 1fr 1fr 1.2fr 1fr 1.1fr 80px 22px';
+const COL_H=['Container No.','Vehicle No.','Qty (MT)','From','To','Vendor','Bag Marking','Surveyor','Rate (INR)',''];
+function renderGroups(){
+  if(!S.groups.length)return`<div style="text-align:center;padding:20px;color:var(--txt3);font-size:12px;border:1px dashed var(--bdr);border-radius:8px">${_lSelA?'Click + Add Group to begin':'Select assignment above, then add groups'}</div>`;
+  return S.groups.map(g=>{
+    const totQ=g.rows.reduce((s,r)=>s+(Number(r.qty)||0),0);
+    const vendors=[...new Set(g.rows.map(r=>r.vendor).filter(Boolean))];
+    return`<div class="grp-box">
+      <div class="grp-hdr">
+        <div class="grp-hdr-l">
+          <div class="grp-num">${S.groups.indexOf(g)+1}</div>
+          <div><input class="grp-name" value="${g.name}" oninput="updGrp(${g.id},'name',this.value)">
+            <div class="grp-meta">${g.rows.length} containers · ${totQ.toFixed(3)} MT${vendors.length?' · '+vendors.join(', '):''}</div>
+          </div>
+        </div>
+        <button class="dan xs" onclick="removeGroup(${g.id})">Remove</button>
+      </div>
+      <div class="grp-body">
+        <div class="grp-surv">
+          <span class="grp-surv-lbl">Group Surveyor</span>
+          <input placeholder="Surveyor name for all rows" value="${g.surveyor||''}" oninput="updGrp(${g.id},'surveyor',this.value)">
+          <span class="grp-surv-note">Override per row below if needed</span>
+        </div>
+        ${g.rows.length?`
+        <div class="col-hdrs" style="display:grid;grid-template-columns:${COLS};gap:4px;margin-bottom:3px">
+          ${COL_H.map(h=>`<div class="col-hdr">${h}</div>`).join('')}
+        </div>
+        ${g.rows.map((r,ri)=>`
+          <div class="con-row" style="grid-template-columns:${COLS}">
+            <input placeholder="TCKU1234567" value="${r.cno||''}" oninput="updRow(${g.id},${ri},'cno',this.value)">
+            <input placeholder="AP09AB1234" value="${r.vno||''}" oninput="updRow(${g.id},${ri},'vno',this.value)">
+            <input type="number" placeholder="0.000" value="${r.qty||''}" oninput="updRow(${g.id},${ri},'qty',this.value)">
+            <input placeholder="From" value="${r.from||''}" oninput="updRow(${g.id},${ri},'from',this.value)">
+            <input placeholder="To" value="${r.to||''}" oninput="updRow(${g.id},${ri},'to',this.value)">
+            <button class="vbtn${r.vendor?' filled':''}" onclick="openVendorPicker(${g.id},${ri})">${r.vendor||'+ Select Vendor'}</button>
+            <input class="${r.bagMarking?'auto':''}" placeholder="Auto from vendor" value="${r.bagMarking||''}" oninput="updRow(${g.id},${ri},'bagMarking',this.value)">
+            <div>
+              <input placeholder="${r.sovr?'Override surveyor':'From group'}" value="${r.sovr?r.surveyor:g.surveyor}" ${!r.sovr?'readonly style="color:var(--txt3)"':''} oninput="updRow(${g.id},${ri},'surveyor',this.value)">
+              <div class="sovr" onclick="toggleSovr(${g.id},${ri})">${r.sovr?'↩ Use group':'✎ Override'}</div>
+            </div>
+            <input type="number" placeholder="Rate" value="${r.rate||''}" oninput="updRow(${g.id},${ri},'rate',this.value)">
+            <button class="ghost xs" onclick="removeRow(${g.id},${ri})">✕</button>
+          </div>`).join('')}`:''}
+        <button class="add-link" onclick="addRow(${g.id});reRenderModal()">＋ Add container row</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 async function saveLoading(id){
-  const data={assignment_id:fv('l_aid'),loading_date:fv('l_date')||null,booking_ref:fv('l_bref')||null,status:fv('l_status'),groups:JSON.stringify(S.groups),remarks:fv('l_rem')};
+  const data={assignment_id:fv('l_aid'),loading_date:fv('l_date')||null,booking_ref:fv('l_bref')||null,
+    status:fv('l_status'),groups:JSON.stringify(S.groups),remarks:fv('l_rem')};
   if(!id)data.id=uid('LOD');
-  _lSelAssignment=null;_lSelBookingRef='';S.groups=[];
+  _lSelA=null;_lSelBref='';S.groups=[];S.groupCounter=0;_reRenderFn=null;
   await saveRec('loading',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// F. SURVEYOR REPORT
-// ═══════════════════════════════════════════════════════════
-function renderSurveyor(){
-  const rows=(S.recs.surveyor||[]).filter(o=>!S.search||[o.assignment_id,o.vendor,o.container_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search assignment, vendor…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderSurveyor()"><button class="pri" onclick="openSurveyorModal()">+ New Survey Report</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Assignment ID','Container','Vendor','Qty Surveyed','Result','Fail Reason','Resolution','Weighment','Bill','Loaded (MT)','Invoice','Actions'],r=>`<tr>
-    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
-    <td>${r.survey_date||'—'}</td>
-    <td><span class="mono" style="color:var(--purple)">${r.assignment_id||'—'}</span></td>
-    <td>${r.container_no||'—'}</td>
-    <td><strong>${r.vendor||'—'}</strong></td>
-    <td class="mono">${fmtN(r.qty_surveyed)}</td>
-    <td>${bdg(r.survey_result||'Pending')}</td>
-    <td style="color:var(--red);font-size:11px">${r.fail_reason||'—'}</td>
-    <td>${r.resolution||'—'}</td>
-    <td>${bdg(r.weighment_slip?'Yes':'No')}</td>
-    <td>${bdg(r.bill_verified?'Yes':'No')}</td>
-    <td class="mono">${fmtN(r.actual_loaded_qty)}</td>
-    <td>${bdg(r.invoice_created||'No')}</td>
-    <td><div class="acell"><button class="sm" onclick="openSurveyorModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('surveyor','${r.id}')">Del</button></div></td>
-  </tr>`,'No surveyor reports yet.')+`</div>`;
-}
-function openSurveyorModal(id){
-  const r=id?(S.recs.surveyor||[]).find(o=>o.id===id):{};
-  const assignments=S.recs.loading||[];
-  const body=`<div class="fg">
-    ${sec('Survey Details')}
-    <div class="fgrp"><label>Survey Date</label><input type="date" id="sv_date" value="${r.survey_date||today()}"></div>
-    <div class="fgrp"><label>Loading Assignment ID</label><select id="sv_aid"><option value="">— Select —</option>${assignments.map(l=>`<option value="${l.assignment_id||l.id}"${r.assignment_id===(l.assignment_id||l.id)?' selected':''}>${l.assignment_id||l.id} · ${l.booking_ref||'—'}</option>`).join('')}</select></div>
-    <div class="fgrp"><label>Container No.</label><input id="sv_cno" value="${r.container_no||''}"></div>
-    <div class="fgrp"><label>Vendor</label><input id="sv_vendor" value="${r.vendor||''}"></div>
-    <div class="fgrp"><label>Qty Surveyed (MT)</label><input type="number" id="sv_qty" value="${r.qty_surveyed||''}"></div>
-    <div class="fgrp"><label>Surveyor Name</label><input id="sv_name" value="${r.surveyor_name||''}"></div>
-    ${sec('Survey Outcome')}
-    <div class="fgrp"><label>Survey Result</label><select id="sv_result">${sel(['Pending','Passed','Failed','Re-inspection'],r.survey_result||'Pending')}</select></div>
-    <div class="fgrp full"><label>Fail Reason (if failed)</label><input id="sv_fail" value="${r.fail_reason||''}"></div>
-    <div class="fgrp"><label>Resolution</label><select id="sv_res">${sel(['—','Cargo Passed — Loaded','New Material Manufactured','Sent to Different Vendor','New Order Created','Loaded at Discount'],r.resolution||'—')}</select></div>
-    <div class="fgrp"><label>Alternate Vendor (if redirected)</label><input id="sv_altv" value="${r.alternate_vendor||''}"></div>
-    ${sec('Loading & Billing')}
-    <div class="fgrp"><label>Weighment Slip Received?</label><select id="sv_wt">${sel(['No','Yes'],r.weighment_slip?'Yes':'No')}</select></div>
-    <div class="fgrp"><label>Vendor Bill Received?</label><select id="sv_bill">${sel(['No','Yes'],r.bill_verified?'Yes':'No')}</select></div>
-    <div class="fgrp"><label>Actual Loaded Qty (MT)</label><input type="number" id="sv_loaded" value="${r.actual_loaded_qty||''}"></div>
-    <div class="fgrp"><label>Invoice Created?</label><select id="sv_inv">${sel(['No','Yes','Partial'],r.invoice_created||'No')}</select></div>
-    <div class="fgrp"><label>Invoice No.</label><input id="sv_invno" value="${r.invoice_no||''}"></div>
-    <div class="fgrp"><label>Invoice Qty (MT)</label><input type="number" id="sv_invqty" value="${r.invoice_qty||''}"></div>
-    <div class="fgrp full"><label>Remarks</label><textarea id="sv_rem">${r.remarks||''}</textarea></div>
+// ══════════════════════════════════════════════════════════
+// PLACEHOLDER PAGES (to be built in next stages)
+// ══════════════════════════════════════════════════════════
+function placeholderPage(title,icon,desc){
+  return`<div style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:12px;opacity:.3">${icon}</div>
+    <div style="font-size:16px;font-weight:500;color:var(--txt2);margin-bottom:6px">${title}</div>
+    <div style="font-size:13px;color:var(--txt3);max-width:360px;margin:0 auto;line-height:1.7">${desc}</div>
+    <div style="margin-top:16px"><span class="badge ba">Coming in next build stage</span></div>
   </div>`;
-  openModal(mw(id?'Edit Survey Report':'New Surveyor Report',body,id?`saveSurveyor('${id}')`:'saveSurveyor()'));
-}
-async function saveSurveyor(id){
-  const data={survey_date:fv('sv_date')||null,assignment_id:fv('sv_aid'),container_no:fv('sv_cno'),vendor:fv('sv_vendor'),qty_surveyed:fv('sv_qty')||null,surveyor_name:fv('sv_name'),survey_result:fv('sv_result'),fail_reason:fv('sv_fail'),resolution:fv('sv_res'),alternate_vendor:fv('sv_altv'),weighment_slip:fv('sv_wt')==='Yes',bill_verified:fv('sv_bill')==='Yes',actual_loaded_qty:fv('sv_loaded')||null,invoice_created:fv('sv_inv'),invoice_no:fv('sv_invno'),invoice_qty:fv('sv_invqty')||null,remarks:fv('sv_rem')};
-  if(!id)data.id=uid('SUR');
-  await saveRec('surveyor',data,id||null);
 }
 
-// ═══════════════════════════════════════════════════════════
-// G. CUSTOMS
-// ═══════════════════════════════════════════════════════════
-function renderCustoms(){
-  const rows=(S.recs.customs||[]).filter(o=>!S.search||[o.container_no,o.leo_copy_no,o.order_id].join(' ').toLowerCase().includes(S.search.toLowerCase()));
-  return`<div class="sbar"><input placeholder="Search container, LEO…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCustoms()"><button class="pri" onclick="openCustomsModal()">+ Add Customs Record</button></div>`+
-  `<div class="card">`+tbl(rows,['ID','Date','Container No.','Contract Ref','Clearing Agent','Customs Entry','LEO Copy No.','LEO Date','Gate-In Date','Seal No.','Port','Status','Actions'],r=>`<tr>
-    <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
-    <td>${r.entry_date||'—'}</td>
-    <td><strong>${r.container_no||'—'}</strong></td><td>${r.order_id||'—'}</td>
-    <td>${r.clearing_agent||'—'}</td>
-    <td class="mono">${r.customs_entry_no||'—'}</td>
-    <td class="mono" style="color:var(--blue)">${r.leo_copy_no||'—'}</td>
-    <td>${r.leo_date||'—'}</td><td>${r.gate_in_date||'—'}</td>
-    <td class="mono">${r.seal_no||'—'}</td><td>${r.port_name||'—'}</td>
-    <td>${bdg(r.status||'Clearance Pending')}</td>
-    <td><div class="acell"><button class="sm" onclick="openCustomsModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('customs','${r.id}')">Del</button></div></td>
-  </tr>`,'No customs records yet.')+`</div>`;
-}
-function openCustomsModal(id){
-  const r=id?(S.recs.customs||[]).find(o=>o.id===id):{};
-  const body=`<div class="fg">
-    ${sec('Customs Details')}
-    <div class="fgrp"><label>Date</label><input type="date" id="cu_date" value="${r.entry_date||today()}"></div>
-    <div class="fgrp"><label>Container No.</label><input id="cu_cno" value="${r.container_no||''}"></div>
-    <div class="fgrp"><label>Linked Contract / Order</label><input id="cu_order" value="${r.order_id||''}"></div>
-    <div class="fgrp"><label>Clearing Agent (CHA)</label><input id="cu_agent" value="${r.clearing_agent||''}"></div>
-    <div class="fgrp"><label>Customs Entry No.</label><input id="cu_entry" value="${r.customs_entry_no||''}"></div>
-    <div class="fgrp"><label>Clearance Date</label><input type="date" id="cu_cdate" value="${r.clearance_date||''}"></div>
-    ${sec('Port Entry')}
-    <div class="fgrp"><label>LEO Copy No.</label><input id="cu_leo" value="${r.leo_copy_no||''}"></div>
-    <div class="fgrp"><label>LEO Date</label><input type="date" id="cu_leodate" value="${r.leo_date||''}"></div>
-    <div class="fgrp"><label>Gate-In Date</label><input type="date" id="cu_gatein" value="${r.gate_in_date||''}"></div>
-    <div class="fgrp"><label>Seal No.</label><input id="cu_seal" value="${r.seal_no||''}"></div>
-    <div class="fgrp"><label>Gate Pass No.</label><input id="cu_gatepass" value="${r.gate_pass_no||''}"></div>
-    <div class="fgrp"><label>Port Name</label><input id="cu_port" value="${r.port_name||''}"></div>
-    <div class="fgrp"><label>Berth / Terminal</label><input id="cu_berth" value="${r.berth_terminal||''}"></div>
-    <div class="fgrp"><label>Status</label><select id="cu_status">${sel(['Clearance Pending','LEO Received','Gate-In Done','Loaded on Vessel'],r.status||'Clearance Pending')}</select></div>
-    <div class="fgrp full"><label>Remarks</label><textarea id="cu_rem">${r.remarks||''}</textarea></div>
-  </div>`;
-  openModal(mw(id?'Edit Customs':'Customs & Port Entry',body,id?`saveCustoms('${id}')`:'saveCustoms()'));
-}
-async function saveCustoms(id){
-  const data={entry_date:fv('cu_date')||null,container_no:fv('cu_cno'),order_id:fv('cu_order')||null,clearing_agent:fv('cu_agent'),customs_entry_no:fv('cu_entry'),clearance_date:fv('cu_cdate')||null,leo_copy_no:fv('cu_leo'),leo_date:fv('cu_leodate')||null,gate_in_date:fv('cu_gatein')||null,seal_no:fv('cu_seal'),gate_pass_no:fv('cu_gatepass'),port_name:fv('cu_port'),berth_terminal:fv('cu_berth'),status:fv('cu_status'),remarks:fv('cu_rem')};
-  if(!id)data.id=uid('CUS');
-  await saveRec('customs',data,id||null);
-}
-
-// ═══════════════════════════════════════════════════════════
-// H. RATES
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// RATES & PRODUCT SPECS
+// ══════════════════════════════════════════════════════════
 function renderRates(){
-  const rows=(S.recs.rates||[]).filter(r=>!S.search||[r.category,r.provider,r.description].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const rows=S.recs.rates.filter(r=>!S.search||[r.category,r.provider,r.description].join(' ').toLowerCase().includes(S.search.toLowerCase()));
   return`<div class="sbar"><input placeholder="Filter…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderRates()"><button class="pri" onclick="openRateModal()">+ Add Rate</button></div>`+
   `<div class="card">`+tbl(rows,['Category','Provider','Description','Rate','Unit','Effective From','Actions'],r=>`<tr>
-    <td><span class="badge bb">${r.category||'—'}</span></td>
-    <td><strong>${r.provider||'—'}</strong></td><td>${r.description||'—'}</td>
-    <td class="mono" style="color:var(--green)">${fmt(r.rate)}</td>
+    <td>${bdg(r.category||'Other')}</td><td><strong>${r.provider||'—'}</strong></td>
+    <td>${r.description||'—'}</td><td class="mono">${fmt(r.rate)}</td>
     <td>${r.unit||'—'}</td><td>${r.effective_from||'—'}</td>
-    <td><div class="acell"><button class="sm" onclick="openRateModal('${r.id}')">Edit</button><button class="sm danger" onclick="delRec('rates','${r.id}')">Del</button></div></td>
+    <td><div class="acell"><button class="sm" onclick="openRateModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('rates','${r.id}')">Del</button></div></td>
   </tr>`,'No rates defined yet.')+`</div>`;
 }
 function openRateModal(id){
-  const r=id?(S.recs.rates||[]).find(o=>o.id===id):{};
+  const r=id?S.recs.rates.find(o=>o.id===id):{};
   const body=`<div class="fg">
-    <div class="fgrp"><label>Category</label><select id="r_cat">${sel(['Freight','Transporter','Clearing','Phyto','Fumigation','Plot Charges','Survey'],r.category||'Freight')}</select></div>
+    <div class="fgrp"><label>Category</label><select id="r_cat">${sel(['Freight','Transporter','Clearing','Phyto','Fumigation','Plot Charges','Survey','Other'],r.category||'Freight')}</select></div>
     <div class="fgrp"><label>Provider / Route</label><input id="r_prov" value="${r.provider||''}"></div>
     <div class="fgrp full"><label>Description</label><input id="r_desc" value="${r.description||''}"></div>
     <div class="fgrp"><label>Rate</label><input type="number" id="r_rate" value="${r.rate||''}"></div>
@@ -1060,22 +1049,54 @@ async function saveRate(id){
   await saveRec('rates',data,id||null);
 }
 
-// ── Page registry ──────────────────────────────────────────
+function renderProductSpecs(){
+  const rows=S.recs.product_specs.filter(r=>!S.search||[r.product,r.commodity_type].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar"><input placeholder="Search product…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderProductSpecs()"><button class="pri" onclick="openSpecModal()">+ Add Product Spec</button></div>`+
+  `<div class="card">`+tbl(rows,['Product','Commodity Type','Spec Fields','Tolerance Notes','Actions'],r=>`<tr>
+    <td><strong>${r.product||'—'}</strong></td><td>${r.commodity_type||'—'}</td>
+    <td style="font-size:11px;color:var(--txt2)">${r.spec_fields||'—'}</td>
+    <td style="font-size:11px;color:var(--txt3)">${r.tolerance_notes||'—'}</td>
+    <td><div class="acell"><button class="sm" onclick="openSpecModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('product_specs','${r.id}')">Del</button></div></td>
+  </tr>`,'No product specs defined yet.')+`</div>`;
+}
+function openSpecModal(id){
+  const r=id?S.recs.product_specs.find(o=>o.id===id):{};
+  const body=`<div class="fg">
+    ${dlf('Product Name','ps_prod','ps_prod_dl',S.masters.products,false,r.product||'')}
+    <div class="fgrp"><label>Commodity Type</label><select id="ps_type">${sel(['Rice','Wheat','Pulses','Spices','Sugar','Other'],r.commodity_type||'Rice')}</select></div>
+    <div class="fgrp full"><label>Quality Spec Fields (comma separated, e.g. Moisture %,Broken %,DD %,Length,Black Kernels)</label><textarea id="ps_fields">${r.spec_fields||''}</textarea></div>
+    <div class="fgrp full"><label>Tolerance Notes (per contract/buyer)</label><textarea id="ps_notes">${r.tolerance_notes||''}</textarea></div>
+  </div>`;
+  openModal(mw(id?'Edit Product Spec':'Add Product Spec',body,id?`saveSpec('${id}')`:'saveSpec()'));
+}
+async function saveSpec(id){
+  const data={product:fv('ps_prod'),commodity_type:fv('ps_type'),spec_fields:fv('ps_fields'),tolerance_notes:fv('ps_notes')};
+  if(!id)data.id=uid('SPEC');
+  await saveRec('product_specs',data,id||null);
+}
+
+// ── Page registry ─────────────────────────────────────────
 const pages={
   dashboard:{title:'Dashboard',render:renderDash},
   orders:{title:'Orders & Contracts',render:renderOrders},
   purchases:{title:'Raw Material Purchase',render:renderPurchases},
   containers:{title:'Container Bookings',render:renderContainers},
-  transporters:{title:'Transporters & Plot Charges',render:renderTransporters},
+  transporters:{title:'Transporters & Plot',render:renderTransporters},
   loading:{title:'Loading Assignment',render:renderLoading},
-  surveyor:{title:'Surveyor Report & Loading',render:renderSurveyor},
-  customs:{title:'Customs & Port Entry',render:renderCustoms},
+  surveyor_ef:{title:'Surveyor Report — Ex-Factory',render:()=>placeholderPage('Surveyor Report — Ex-Factory','🔬','Survey results, pass/fail flow, weighment and vendor bill verification for ex-factory stuffing.')},
+  psi:{title:'PSI — Pre-Shipment Inspection',render:()=>placeholderPage('PSI — Pre-Shipment Inspection','🧪','Pre-shipment quality inspection at miller location. Qty-based dispatch flag system.')},
+  cfs_trucks:{title:'CFS Truck Dispatch & Receipt',render:()=>placeholderPage('CFS Truck Dispatch & Receipt','🚛','Track miller truck dispatches to CFS. Factory vs CFS weight reconciliation. PSI qty flag.')},
+  cfs_stuffing:{title:'CFS Stuffing & Container Allocation','render':()=>placeholderPage('CFS Stuffing & Container Allocation','📦','Container stuffing at CFS. DSR tracking. Stock at CFS running balance.')},
+  invoices:{title:'Invoice & Packing List',render:()=>placeholderPage('Invoice & Packing List','🧾','Flexible invoice creation. Multiple invoices per contract. Packing list with seal numbers. Cut-off date tracking.')},
+  customs:{title:'Customs & Documentation',render:()=>placeholderPage('Customs & Documentation','🛃','First check copy, LEO, Phyto, seal numbers, port entry vehicle numbers per container.')},
+  shipping:{title:'Shipping & BL',render:()=>placeholderPage('Shipping & BL','🚢','BL copy receipt. Miscellaneous documents. Full document checklist per shipment.')},
+  payments:{title:'Payment Tracking',render:()=>placeholderPage('Payment Tracking','💰','Bank negotiation, telex release, direct payment. Track per invoice.')},
   rates:{title:'Master Rates',render:renderRates},
+  product_specs:{title:'Product Specs',render:renderProductSpecs},
 };
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-renderAll();
-loadAll();
+renderAll();loadAll();
 </script>
 </body>
 </html>
