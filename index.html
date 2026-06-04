@@ -1648,6 +1648,392 @@ async function saveCfsTruck(id){
 }
 
 
+
+// ══════════════════════════════════════════════════════════
+// I. CFS STUFFING & CONTAINER ALLOCATION
+// ══════════════════════════════════════════════════════════
+let _stuffSelC=null;
+
+function renderCfsStuffing(){
+  const rows=S.recs.cfs_stuffing.filter(o=>!S.search||
+    [o.export_invoice_no,o.brand,o.cfs_name,o.linked_contract_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar">
+    <input placeholder="Search invoice ref, brand, CFS, contract…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCfsStuffing()">
+    <button class="pri" onclick="openStuffingModal()">+ New Stuffing Record</button>
+  </div>
+  <div class="kgrid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="klbl">Stuffing Records</div><div class="kval" style="color:var(--blue)">${rows.length}</div></div>
+    <div class="kpi"><div class="klbl">Total Containers</div><div class="kval" style="color:var(--green)">${rows.reduce((s,r)=>{let c=[];try{c=JSON.parse(r.containers||'[]')}catch(e){}return s+c.length;},0)}</div></div>
+    <div class="kpi"><div class="klbl">Total Bags</div><div class="kval" style="color:var(--amber)">${fmtN(rows.reduce((s,r)=>s+(Number(r.total_bags)||0),0))}</div></div>
+    <div class="kpi"><div class="klbl">Total Stock at CFS (MT)</div><div class="kval" style="color:var(--cyan);font-size:16px">${fmt(rows.reduce((s,r)=>s+(Number(r.stock_at_cfs)||0),0))}</div></div>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['ID','Invoice Ref','Exporter','Brand','CFS','Contract','Containers','Total Bags','Stock at CFS (MT)','DSR Ref','Actions'],
+    r=>{
+      let conts=[];try{conts=JSON.parse(r.containers||'[]');}catch(e){}
+      return`<tr>
+        <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+        <td><span class="mono" style="color:var(--blue)">${r.export_invoice_no||'—'}</span></td>
+        <td>${r.exporter||'—'}</td>
+        <td>${r.brand||'—'}</td>
+        <td>${r.cfs_name||'—'}</td>
+        <td><span class="mono" style="color:var(--green)">${r.linked_contract_no||'—'}</span></td>
+        <td class="mono">${conts.length}</td>
+        <td class="mono">${fmtN(r.total_bags)}</td>
+        <td class="mono ${Number(r.stock_at_cfs)>0?'dok':'dbad'}">${fmtN(r.stock_at_cfs)}</td>
+        <td class="mono" style="color:var(--txt3)">${r.dsr_ref||'—'}</td>
+        <td><div class="acell">
+          <button class="sm" onclick="openStuffingModal('${r.id}')">Edit</button>
+          <button class="sm" onclick="viewStuffingDetail('${r.id}')">View</button>
+          <button class="sm dan" onclick="delRec('cfs_stuffing','${r.id}')">Del</button>
+        </div></td>
+      </tr>`;
+    },
+    'No CFS stuffing records yet. Click + New Stuffing Record to begin.'
+  )+`</div>`;
+}
+
+function viewStuffingDetail(id){
+  const r=S.recs.cfs_stuffing.find(o=>o.id===id);if(!r)return;
+  let conts=[];try{conts=JSON.parse(r.containers||'[]');}catch(e){}
+  const body=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div class="kpi"><div class="klbl">Invoice</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)">${r.export_invoice_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Brand</div><div style="font-size:13px;font-weight:600">${r.brand||'—'}</div></div>
+      <div class="kpi"><div class="klbl">CFS</div><div style="font-size:13px;font-weight:600">${r.cfs_name||'—'}</div></div>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>#</th><th>Container No.</th><th>Seal No.</th><th>Bags</th><th>Stuffing Date</th><th>Tare Wt (MT)</th><th>PART?</th><th>Remarks</th></tr></thead>
+      <tbody>${conts.map((c,i)=>`<tr>
+        <td class="mono">${i+1}</td>
+        <td class="mono" style="color:var(--blue)">${c.container_no||'—'}</td>
+        <td class="mono" style="color:var(--amber)">${c.seal_no||'—'}</td>
+        <td class="mono">${fmtN(c.bags)}</td>
+        <td>${c.stuffing_date||'—'}</td>
+        <td class="mono">${fmtN(c.tare_weight)}</td>
+        <td>${c.is_part?bdg('Partial'):''}</td>
+        <td style="font-size:11px;color:var(--txt3)">${c.remarks||'—'}</td>
+      </tr>`).join('')||`<tr><td colspan="8" class="empty">No containers recorded.</td></tr>`}
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <div class="kpi"><div class="klbl">Total Bags</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--green)">${fmtN(r.total_bags)}</div></div>
+      <div class="kpi"><div class="klbl">Stock at CFS (MT)</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:${Number(r.stock_at_cfs)>0?'var(--green)':'var(--red)'}">${fmtN(r.stock_at_cfs)}</div></div>
+      <div class="kpi"><div class="klbl">DSR Ref</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--txt2)">${r.dsr_ref||'—'}</div></div>
+    </div>
+    <div class="mac"><button onclick="closeModal()">Close</button><button class="pri" onclick="openStuffingModal('${id}')">Edit</button></div>`;
+  openModal(`<div class="modal lg"><h3>Stuffing Detail — ${r.export_invoice_no||r.id}</h3>${body}</div>`);
+}
+
+let _stuffContainers=[];
+function openStuffingModal(id){
+  S._editIds.cfs_stuffing=id||null;
+  const r=id?S.recs.cfs_stuffing.find(o=>o.id===id):{};
+  const selCId=_stuffSelC||(id?r.linked_contract_id:null);
+  _reRenderFn=()=>openStuffingModal(id);
+  if(id){try{_stuffContainers=JSON.parse(r.containers||'[]');}catch(e){_stuffContainers=[];}}
+  else if(!_stuffContainers.length)_stuffContainers=[];
+
+  // Get trucks for this invoice ref to calculate received bags
+  const trucks=S.recs.cfs_trucks.filter(t=>t.invoice_ref&&t.invoice_ref===r.export_invoice_no);
+  const totalRcvBags=trucks.reduce((s,t)=>s+(Number(t.receiving_bags)||0),0);
+  const stuffedBags=_stuffContainers.reduce((s,c)=>s+(Number(c.bags)||0),0);
+  const stockBags=totalRcvBags-stuffedBags;
+
+  const body=`
+    ${contractQWin(selCId,'selStuffingContract')}
+    <div class="fg">
+      <div class="fgrp"><label>Linked Contract (auto)</label><input id="stf_contract" value="${r.linked_contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Export Invoice Ref</label><input id="stf_invref" value="${r.export_invoice_no||''}" oninput="refreshStockCalc()"></div>
+      <div class="fgrp"><label>Exporter</label><input id="stf_exporter" value="${r.exporter||''}"></div>
+      <div class="fgrp"><label>Brand</label><input id="stf_brand" value="${r.brand||''}"></div>
+      <div class="fgrp"><label>CFS Name</label><input id="stf_cfs" value="${r.cfs_name||''}"></div>
+      <div class="fgrp"><label>DSR Ref (CHA reference)</label><input id="stf_dsr" value="${r.dsr_ref||''}"></div>
+      ${msec('Stock Calculation')}
+      <div class="fgrp"><label>Total Bags Received at CFS</label><div id="stf_rcvbags" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)">${fmtN(totalRcvBags)} bags</div></div>
+      <div class="fgrp"><label>Bags Already Stuffed</label><div id="stf_stuffedbags" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--amber)">${fmtN(stuffedBags)} bags</div></div>
+      <div class="fgrp"><label>Stock at CFS (bags)</label><div id="stf_stockbags" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:600;color:${stockBags>0?'var(--green)':'var(--red)'}">${fmtN(stockBags)} bags</div></div>
+      <div class="fgrp"><label>Stock at CFS (MT)</label><input type="number" step="0.001" id="stf_stockmt" value="${r.stock_at_cfs||''}" placeholder="Enter manually (bags × bag wt)"></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em">Container Stuffing Records</div>
+      <button class="suc sm" onclick="addStuffingRow()">＋ Add Container</button>
+    </div>
+    <div id="stf_containers_render">${renderStuffingContainers()}</div>
+    <div class="fg" style="margin-top:10px">
+      <div class="fgrp"><label>Total Bags (manual check)</label><input type="number" id="stf_totbags" value="${r.total_bags||''}"></div>
+      <div class="fgrp full"><label>Remarks</label><textarea id="stf_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit CFS Stuffing Record':'New CFS Stuffing Record',body,id?`saveStuffing('${id}')`:'saveStuffing()',true));
+}
+function selStuffingContract(id){
+  _stuffSelC=id;
+  const c=S.recs.orders.find(o=>o.id===id);
+  if(c){af('stf_contract',c.contract_no||'');af('stf_brand',c.bag_marking?.split('/')[0]?.trim()||c.product||'');}
+  S.qSearch.contract='';
+  openStuffingModal(S._editIds.cfs_stuffing);
+}
+function renderStuffingContainers(){
+  if(!_stuffContainers.length)return`<div style="text-align:center;padding:14px;color:var(--txt3);font-size:12px;border:1px dashed var(--bdr);border-radius:7px">No containers added yet. Click + Add Container.</div>`;
+  return`<div style="overflow-x:auto"><table>
+    <thead><tr><th>#</th><th>Container No.</th><th>Seal No.</th><th>No. of Bags</th><th>Stuffing Date</th><th>Tare Weight (MT)</th><th>PART?</th><th>Remarks</th><th></th></tr></thead>
+    <tbody>${_stuffContainers.map((c,i)=>`<tr>
+      <td class="mono" style="color:var(--txt3)">${i+1}</td>
+      <td><input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;font-family:var(--mono);color:var(--blue);width:130px" value="${c.container_no||''}" placeholder="TCKU1234567" oninput="updStuffRow(${i},'container_no',this.value)"></td>
+      <td><input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;font-family:var(--mono);color:var(--amber);width:110px" value="${c.seal_no||''}" placeholder="SEAL123" oninput="updStuffRow(${i},'seal_no',this.value)"></td>
+      <td><input type="number" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;font-family:var(--mono);width:80px" value="${c.bags||''}" placeholder="0" oninput="updStuffRow(${i},'bags',this.value);updateStuffedBagsCalc()"></td>
+      <td><input type="date" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;width:130px" value="${c.stuffing_date||''}" oninput="updStuffRow(${i},'stuffing_date',this.value)"></td>
+      <td><input type="number" step="0.001" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;font-family:var(--mono);width:90px" value="${c.tare_weight||''}" placeholder="0.000" oninput="updStuffRow(${i},'tare_weight',this.value)"></td>
+      <td><select style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;width:70px" onchange="updStuffRow(${i},'is_part',this.value==='Yes')"><option${!c.is_part?' selected':''}>No</option><option${c.is_part?' selected':''}>Yes</option></select></td>
+      <td><input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:4px 7px;font-size:11px;width:120px" value="${c.remarks||''}" placeholder="Notes" oninput="updStuffRow(${i},'remarks',this.value)"></td>
+      <td><button class="ghost xs" onclick="removeStuffRow(${i})">✕</button></td>
+    </tr>`).join('')}
+    </tbody>
+  </table>
+  <div style="margin-top:8px;font-size:11px;color:var(--txt3)">Total stuffed bags: <strong style="color:var(--green);font-family:var(--mono)">${fmtN(_stuffContainers.reduce((s,c)=>s+(Number(c.bags)||0),0))}</strong> · Containers: <strong style="color:var(--blue);font-family:var(--mono)">${_stuffContainers.length}</strong></div>
+  </div>`;
+}
+function addStuffingRow(){_stuffContainers.push({container_no:'',seal_no:'',bags:'',stuffing_date:today(),tare_weight:'',is_part:false,remarks:''});document.getElementById('stf_containers_render').innerHTML=renderStuffingContainers();}
+function removeStuffRow(i){_stuffContainers.splice(i,1);document.getElementById('stf_containers_render').innerHTML=renderStuffingContainers();updateStuffedBagsCalc();}
+function updStuffRow(i,f,v){if(_stuffContainers[i])_stuffContainers[i][f]=v;}
+function updateStuffedBagsCalc(){
+  const stuffed=_stuffContainers.reduce((s,c)=>s+(Number(c.bags)||0),0);
+  const el=document.getElementById('stf_stuffedbags');
+  if(el)el.textContent=fmtN(stuffed)+' bags';
+  const rcv=parseInt(document.getElementById('stf_rcvbags')?.textContent)||0;
+  const stock=rcv-stuffed;
+  const sel=document.getElementById('stf_stockbags');
+  if(sel){sel.textContent=fmtN(stock)+' bags';sel.style.color=stock>0?'var(--green)':'var(--red)';}
+}
+async function saveStuffing(id){
+  const data={
+    export_invoice_no:fv('stf_invref'),exporter:fv('stf_exporter'),brand:fv('stf_brand'),
+    cfs_name:fv('stf_cfs'),dsr_ref:fv('stf_dsr'),linked_contract_no:fv('stf_contract'),
+    linked_contract_id:_stuffSelC||null,containers:JSON.stringify(_stuffContainers),
+    total_bags:parseInt(fv('stf_totbags'))||null,stock_at_cfs:fv('stf_stockmt')||null,
+    remarks:fv('stf_rem')
+  };
+  if(!id)data.id=uid('STF');
+  _stuffSelC=null;_stuffContainers=[];_reRenderFn=null;
+  await saveRec('cfs_stuffing',data,id||null);
+}
+
+// ══════════════════════════════════════════════════════════
+// J. INVOICE & PACKING LIST
+// ══════════════════════════════════════════════════════════
+let _invSelC=null,_invContainers=[];
+
+function renderInvoices(){
+  const rows=S.recs.invoices.filter(o=>!S.search||
+    [o.invoice_no,o.buyer,o.contract_no,o.commodity].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const totalVal=rows.reduce((s,r)=>s+(Number(r.invoice_value)||0),0);
+  const unpaid=rows.filter(r=>r.payment_status==='Unpaid'||r.payment_status==='Overdue').length;
+  return`
+  <div class="kgrid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="klbl">Total Invoices</div><div class="kval" style="color:var(--blue)">${rows.length}</div></div>
+    <div class="kpi"><div class="klbl">Total Value (USD)</div><div class="kval" style="color:var(--green);font-size:16px">$${fmt(totalVal)}</div></div>
+    <div class="kpi"><div class="klbl">Pending Payment</div><div class="kval" style="color:var(--amber)">${unpaid}</div></div>
+    <div class="kpi"><div class="klbl">Paid</div><div class="kval" style="color:var(--green)">${rows.filter(r=>r.payment_status==='Paid').length}</div></div>
+  </div>
+  <div class="sbar">
+    <input placeholder="Search invoice no., buyer, contract…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderInvoices()">
+    <button class="pri" onclick="openInvoiceModal()">+ New Invoice</button>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['Invoice No.','Date','Contract No.','Buyer','Commodity','Qty (MT)','Currency','Invoice Value','Containers','Cut-Off Date','Type','Payment Status','Actions'],
+    r=>{
+      let conts=[];try{conts=JSON.parse(r.containers||'[]');}catch(e){}
+      return`<tr>
+        <td><strong style="font-family:var(--mono);color:var(--blue)">${r.invoice_no||r.id}</strong></td>
+        <td>${r.invoice_date||'—'}</td>
+        <td><span class="mono" style="color:var(--green)">${r.contract_no||'—'}</span></td>
+        <td>${r.buyer||'—'}</td>
+        <td>${r.commodity||'—'}</td>
+        <td class="mono">${fmtN(r.qty)}</td>
+        <td>${r.currency||'USD'}</td>
+        <td class="mono" style="font-weight:600;color:var(--green)">$${fmt(r.invoice_value)}</td>
+        <td class="mono">${conts.length}</td>
+        <td class="mono" style="color:${r.cutoff_date&&new Date(r.cutoff_date)<new Date()?'var(--red)':'var(--txt2)'}">${r.cutoff_date||'—'}</td>
+        <td>${bdg(r.invoice_type||'Ex-Factory')}</td>
+        <td>${bdg(r.payment_status||'Unpaid')}</td>
+        <td><div class="acell">
+          <button class="sm" onclick="openInvoiceModal('${r.id}')">Edit</button>
+          <button class="sm" onclick="viewInvoiceDetail('${r.id}')">View</button>
+          <button class="sm dan" onclick="delRec('invoices','${r.id}')">Del</button>
+        </div></td>
+      </tr>`;
+    },
+    'No invoices yet. Click + New Invoice to begin.'
+  )+`</div>`;
+}
+
+function viewInvoiceDetail(id){
+  const r=S.recs.invoices.find(o=>o.id===id);if(!r)return;
+  let conts=[];try{conts=JSON.parse(r.containers||'[]');}catch(e){}
+  let pl=[];try{pl=JSON.parse(r.packing_list||'[]');}catch(e){}
+  const body=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Invoice No.</div>
+        <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--blue)">${r.invoice_no||r.id}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Invoice Value</div>
+        <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--green)">${r.currency||'USD'} ${fmt(r.invoice_value)}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="kpi"><div class="klbl">Buyer</div><div style="font-size:13px;font-weight:500">${r.buyer||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Contract</div><div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--green)">${r.contract_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Commodity</div><div style="font-size:13px;font-weight:500">${r.commodity||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Qty (MT)</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)">${fmtN(r.qty)}</div></div>
+      <div class="kpi"><div class="klbl">Cut-Off Date</div><div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${r.cutoff_date&&new Date(r.cutoff_date)<new Date()?'var(--red)':'var(--txt)'}">${r.cutoff_date||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Payment Status</div><div>${bdg(r.payment_status||'Unpaid')}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Container & Seal Numbers (Packing List)</div>
+    <div style="overflow-x:auto;margin-bottom:12px">
+    <table>
+      <thead><tr><th>#</th><th>Container No.</th><th>Seal No.</th><th>Port Entry Vehicle No.</th><th>No. of Bags</th><th>Net Wt (MT)</th><th>Gross Wt (MT)</th><th>Remarks</th></tr></thead>
+      <tbody>${conts.map((c,i)=>`<tr>
+        <td class="mono">${i+1}</td>
+        <td class="mono" style="color:var(--blue)">${c.container_no||'—'}</td>
+        <td class="mono" style="color:var(--amber)">${c.seal_no||'—'}</td>
+        <td class="mono">${c.port_vehicle_no||'—'}</td>
+        <td class="mono">${fmtN(c.bags)}</td>
+        <td class="mono">${fmtN(c.net_weight)}</td>
+        <td class="mono">${fmtN(c.gross_weight)}</td>
+        <td style="font-size:11px;color:var(--txt3)">${c.remarks||'—'}</td>
+      </tr>`).join('')||`<tr><td colspan="8" class="empty">No containers in packing list.</td></tr>`}
+      </tbody>
+    </table>
+    </div>
+    <div class="mac"><button onclick="closeModal()">Close</button><button class="pri" onclick="openInvoiceModal('${id}')">Edit</button></div>`;
+  openModal(`<div class="modal lg"><h3>Invoice: ${r.invoice_no||r.id}</h3>${body}</div>`);
+}
+
+function openInvoiceModal(id){
+  S._editIds.invoices=id||null;
+  const r=id?S.recs.invoices.find(o=>o.id===id):{};
+  const selCId=_invSelC||(id?r.linked_contract_id:null);
+  _reRenderFn=()=>openInvoiceModal(id);
+  if(id){try{_invContainers=JSON.parse(r.containers||'[]');}catch(e){_invContainers=[];}}
+  else if(!_invContainers.length)_invContainers=[];
+
+  const body=`
+    ${contractQWin(selCId,'selInvoiceContract')}
+    <div class="fg">
+      ${msec('Invoice Details')}
+      <div class="fgrp"><label>Linked Contract (auto)</label><input id="inv_contract" value="${r.contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Invoice No.</label><input id="inv_no" value="${r.invoice_no||''}" placeholder="e.g. VAST/26-27/001" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Invoice Date</label><input type="date" id="inv_date" value="${r.invoice_date||today()}"></div>
+      <div class="fgrp"><label>Invoice Type</label><select id="inv_type">${sel(['Ex-Factory','CFS / Port Delivery'],r.invoice_type||'Ex-Factory')}</select></div>
+      <div class="fgrp"><label>Buyer</label><input id="inv_buyer" value="${r.buyer||''}"></div>
+      <div class="fgrp"><label>Exporter</label><input id="inv_exporter" value="${r.exporter||''}"></div>
+      <div class="fgrp"><label>Commodity</label><input id="inv_comm" value="${r.commodity||''}"></div>
+      <div class="fgrp"><label>Bag Marking</label><input id="inv_bmark" value="${r.bag_marking||''}"></div>
+      ${msec('Pricing')}
+      <div class="fgrp"><label>Quantity (MT)</label><input type="number" id="inv_qty" value="${r.qty||''}" oninput="calcInvoiceValue()"></div>
+      <div class="fgrp"><label>Unit Price</label><input type="number" id="inv_price" value="${r.unit_price||''}" oninput="calcInvoiceValue()"></div>
+      <div class="fgrp"><label>Currency</label><select id="inv_cur">${sel(['USD','EUR','GBP','INR','AED'],r.currency||'USD')}</select></div>
+      <div class="fgrp"><label>Invoice Value (auto)</label><div id="inv_value_disp" style="padding:6px 9px;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green)">${r.invoice_value?'$'+fmt(r.invoice_value):'—'}</div></div>
+      <input type="hidden" id="inv_value" value="${r.invoice_value||''}">
+      ${msec('Dates & Status')}
+      <div class="fgrp"><label>Cut-Off Date (Shipping Line)</label><input type="date" id="inv_cutoff" value="${r.cutoff_date||''}"></div>
+      <div class="fgrp"><label>Payment Terms</label><input id="inv_pterm" value="${r.payment_terms||''}"></div>
+      <div class="fgrp"><label>Delivery Terms</label><input id="inv_dterm" value="${r.delivery_terms||''}"></div>
+      <div class="fgrp"><label>Payment Status</label><select id="inv_pstatus">${sel(['Unpaid','Partial','Paid','Overdue'],r.payment_status||'Unpaid')}</select></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em">Packing List — Container & Seal Numbers</div>
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">One row per container. Port entry vehicle may differ from loading vehicle.</div>
+      </div>
+      <button class="suc sm" onclick="addInvContainer()">＋ Add Container</button>
+    </div>
+    <div id="inv_containers_render">${renderInvContainers()}</div>
+    <div class="fg" style="margin-top:10px">
+      <div class="fgrp full"><label>Remarks</label><textarea id="inv_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit Invoice':'New Invoice & Packing List',body,id?`saveInvoice('${id}')`:'saveInvoice()',true));
+  setTimeout(()=>calcInvoiceValue(),80);
+}
+function selInvoiceContract(id){
+  _invSelC=id;
+  const c=S.recs.orders.find(o=>o.id===id);
+  if(c){
+    af('inv_contract',c.contract_no||'');
+    const b=document.getElementById('inv_buyer');if(b&&!b.value)b.value=c.buyer||'';
+    const e=document.getElementById('inv_exporter');if(e&&!e.value)e.value=c.exporter||'';
+    const cm=document.getElementById('inv_comm');if(cm&&!cm.value)cm.value=c.product||'';
+    const bm=document.getElementById('inv_bmark');if(bm&&!bm.value)bm.value=c.bag_marking||'';
+    const cu=document.getElementById('inv_cur');if(cu)cu.value=c.currency||'USD';
+    const pr=document.getElementById('inv_price');if(pr&&!pr.value)pr.value=c.unit_price||'';
+    setTimeout(()=>calcInvoiceValue(),50);
+  }
+  S.qSearch.contract='';
+  openInvoiceModal(S._editIds.invoices);
+}
+function calcInvoiceValue(){
+  const qty=parseFloat(document.getElementById('inv_qty')?.value)||0;
+  const price=parseFloat(document.getElementById('inv_price')?.value)||0;
+  const val=qty*price;
+  const disp=document.getElementById('inv_value_disp');
+  const hidden=document.getElementById('inv_value');
+  if(disp)disp.textContent=val>0?'$'+fmt(val):'—';
+  if(hidden)hidden.value=val||'';
+}
+function renderInvContainers(){
+  if(!_invContainers.length)return`<div style="text-align:center;padding:14px;color:var(--txt3);font-size:12px;border:1px dashed var(--bdr);border-radius:7px">No containers in packing list yet. Click + Add Container.</div>`;
+  const ICOLS='1.2fr 1fr 1fr 80px 90px 90px 90px 22px';
+  return`<div style="overflow-x:auto">
+  <div style="display:grid;grid-template-columns:${ICOLS};gap:4px;margin-bottom:3px">
+    ${['Container No.','Seal No.','Port Entry Vehicle No.','Bags','Net Wt (MT)','Gross Wt (MT)','Tare Wt (MT)',''].map(h=>`<div class="col-hdr" style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;text-align:center">${h}</div>`).join('')}
+  </div>
+  ${_invContainers.map((c,i)=>`
+    <div style="display:grid;grid-template-columns:${ICOLS};gap:4px;margin-bottom:4px;align-items:center">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);color:var(--blue);width:100%" value="${c.container_no||''}" placeholder="TCKU1234567" oninput="updInvCont(${i},'container_no',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);color:var(--amber);width:100%" value="${c.seal_no||''}" placeholder="SEAL001" oninput="updInvCont(${i},'seal_no',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.port_vehicle_no||''}" placeholder="Port entry vehicle" oninput="updInvCont(${i},'port_vehicle_no',this.value)">
+      <input type="number" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.bags||''}" placeholder="0" oninput="updInvCont(${i},'bags',this.value)">
+      <input type="number" step="0.001" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.net_weight||''}" placeholder="0.000" oninput="updInvCont(${i},'net_weight',this.value)">
+      <input type="number" step="0.001" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.gross_weight||''}" placeholder="0.000" oninput="updInvCont(${i},'gross_weight',this.value)">
+      <input type="number" step="0.001" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.tare_weight||''}" placeholder="0.000" oninput="updInvCont(${i},'tare_weight',this.value)">
+      <button class="ghost xs" onclick="removeInvCont(${i})">✕</button>
+    </div>`).join('')}
+  <div style="margin-top:6px;font-size:11px;color:var(--txt3)">
+    Containers: <strong style="color:var(--blue);font-family:var(--mono)">${_invContainers.length}</strong> ·
+    Total bags: <strong style="color:var(--green);font-family:var(--mono)">${fmtN(_invContainers.reduce((s,c)=>s+(Number(c.bags)||0),0))}</strong> ·
+    Total net wt: <strong style="color:var(--green);font-family:var(--mono)">${fmt(_invContainers.reduce((s,c)=>s+(Number(c.net_weight)||0),0))} MT</strong>
+  </div>
+  </div>`;
+}
+function addInvContainer(){_invContainers.push({container_no:'',seal_no:'',port_vehicle_no:'',bags:'',net_weight:'',gross_weight:'',tare_weight:''});document.getElementById('inv_containers_render').innerHTML=renderInvContainers();}
+function removeInvCont(i){_invContainers.splice(i,1);document.getElementById('inv_containers_render').innerHTML=renderInvContainers();}
+function updInvCont(i,f,v){if(_invContainers[i])_invContainers[i][f]=v;}
+async function saveInvoice(id){
+  calcInvoiceValue();
+  const data={
+    invoice_no:fv('inv_no')||null,invoice_date:fv('inv_date')||null,
+    contract_no:fv('inv_contract'),linked_contract_id:_invSelC||null,
+    buyer:fv('inv_buyer'),exporter:fv('inv_exporter'),commodity:fv('inv_comm'),
+    bag_marking:fv('inv_bmark'),qty:fv('inv_qty')||null,unit_price:fv('inv_price')||null,
+    currency:fv('inv_cur'),invoice_value:fv('inv_value')||null,
+    payment_terms:fv('inv_pterm'),delivery_terms:fv('inv_dterm'),
+    cutoff_date:fv('inv_cutoff')||null,invoice_type:fv('inv_type'),
+    payment_status:fv('inv_pstatus'),
+    containers:JSON.stringify(_invContainers),
+    remarks:fv('inv_rem')
+  };
+  if(!id)data.id=uid('INV');
+  _invSelC=null;_invContainers=[];_reRenderFn=null;
+  await saveRec('invoices',data,id||null);
+}
+
+
 // ── Page registry ─────────────────────────────────────────
 const pages={
   dashboard:{title:'Dashboard',render:renderDash},
@@ -1659,8 +2045,8 @@ const pages={
   surveyor_ef:{title:'Surveyor Report — Ex-Factory',render:renderSurveyorEf},
   psi:{title:'PSI — Pre-Shipment Inspection',render:renderPsi},
   cfs_trucks:{title:'CFS Truck Dispatch & Receipt',render:renderCfsTrucks},
-  cfs_stuffing:{title:'CFS Stuffing & Container Allocation','render':()=>placeholderPage('CFS Stuffing & Container Allocation','📦','Container stuffing at CFS. DSR tracking. Stock at CFS running balance.')},
-  invoices:{title:'Invoice & Packing List',render:()=>placeholderPage('Invoice & Packing List','🧾','Flexible invoice creation. Multiple invoices per contract. Packing list with seal numbers. Cut-off date tracking.')},
+  cfs_stuffing:{title:'CFS Stuffing & Container Allocation',render:renderCfsStuffing},
+  invoices:{title:'Invoice & Packing List',render:renderInvoices},
   customs:{title:'Customs & Documentation',render:()=>placeholderPage('Customs & Documentation','🛃','First check copy, LEO, Phyto, seal numbers, port entry vehicle numbers per container.')},
   shipping:{title:'Shipping & BL',render:()=>placeholderPage('Shipping & BL','🚢','BL copy receipt. Miscellaneous documents. Full document checklist per shipment.')},
   payments:{title:'Payment Tracking',render:()=>placeholderPage('Payment Tracking','💰','Bank negotiation, telex release, direct payment. Track per invoice.')},
