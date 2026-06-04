@@ -2034,6 +2034,563 @@ async function saveInvoice(id){
 }
 
 
+
+// ══════════════════════════════════════════════════════════
+// K. CUSTOMS & DOCUMENTATION
+// ══════════════════════════════════════════════════════════
+let _cusSelInv=null,_cusContainerEntries=[];
+
+function renderCustoms(){
+  const rows=S.recs.customs.filter(o=>!S.search||
+    [o.invoice_no,o.contract_no,o.clearing_agent,o.leo_no].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const today2=new Date();
+  // Cutoff warnings from invoices
+  const cutoffWarnings=S.recs.invoices.filter(inv=>{
+    if(!inv.cutoff_date)return false;
+    const diff=Math.round((new Date(inv.cutoff_date)-today2)/86400000);
+    return diff>=0&&diff<=3;
+  });
+  return`
+  ${cutoffWarnings.length?`<div class="alert-banner alert-red" style="display:block">
+    <div class="alert-title">⚠ Cargo Cut-Off Warning — ${cutoffWarnings.length} invoice${cutoffWarnings.length>1?'s':''} approaching cut-off</div>
+    <div class="alert-sub">${cutoffWarnings.map(inv=>{const d=Math.round((new Date(inv.cutoff_date)-today2)/86400000);return`${inv.invoice_no||inv.id}: cut-off ${d===0?'TODAY':d+'d'} (${inv.cutoff_date})`;}).join(' · ')}</div>
+  </div>`:''}
+  <div class="sbar">
+    <input placeholder="Search invoice no., contract, clearing agent, LEO…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderCustoms()">
+    <button class="pri" onclick="openCustomsModal()">+ New Customs Record</button>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['ID','Invoice No.','Contract','CHA','First Check','LEO No.','LEO Date','Phyto','Fumigation','Containers','Status','Actions'],
+    r=>{
+      let ce=[];try{ce=JSON.parse(r.container_port_entries||'[]');}catch(e){}
+      return`<tr>
+        <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+        <td><strong class="mono" style="color:var(--blue)">${r.invoice_no||'—'}</strong></td>
+        <td><span class="mono" style="color:var(--green)">${r.contract_no||'—'}</span></td>
+        <td>${r.clearing_agent||'—'}</td>
+        <td>${bdg(r.first_check_status||'Pending')}</td>
+        <td class="mono" style="color:var(--cyan)">${r.leo_no||'—'}</td>
+        <td>${r.leo_date||'—'}</td>
+        <td>${bdg(r.phyto_applied||'No')}</td>
+        <td>${bdg(r.fumigation_done||'No')}</td>
+        <td class="mono">${ce.length}</td>
+        <td>${bdg(r.status||'Clearance Pending')}</td>
+        <td><div class="acell">
+          <button class="sm" onclick="openCustomsModal('${r.id}')">Edit</button>
+          <button class="sm" onclick="viewCustomsDetail('${r.id}')">View</button>
+          <button class="sm dan" onclick="delRec('customs','${r.id}')">Del</button>
+        </div></td>
+      </tr>`;
+    },
+    'No customs records yet.'
+  )+`</div>`;
+}
+
+function viewCustomsDetail(id){
+  const r=S.recs.customs.find(o=>o.id===id);if(!r)return;
+  let ce=[];try{ce=JSON.parse(r.container_port_entries||'[]');}catch(e){}
+  const body=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="kpi"><div class="klbl">Invoice No.</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)">${r.invoice_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Contract</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green)">${r.contract_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Status</div><div>${bdg(r.status||'Clearance Pending')}</div></div>
+      <div class="kpi"><div class="klbl">Clearing Agent (CHA)</div><div style="font-size:13px;font-weight:500">${r.clearing_agent||'—'}</div></div>
+      <div class="kpi"><div class="klbl">LEO No.</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--cyan)">${r.leo_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">LEO Date</div><div style="font-family:var(--mono);font-size:13px">${r.leo_date||'—'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+      <div class="kpi"><div class="klbl">First Check</div><div>${bdg(r.first_check_status||'Pending')}</div></div>
+      <div class="kpi"><div class="klbl">Phyto</div><div>${bdg(r.phyto_applied||'No')}</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">${r.phyto_cert_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Fumigation</div><div>${bdg(r.fumigation_done||'No')}</div><div style="font-size:10px;color:var(--txt3);margin-top:2px">${r.fumigation_cert||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Containers</div><div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--blue)">${ce.length}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Container Port Entry Details</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>#</th><th>Container No.</th><th>Seal No.</th><th>Port Entry Vehicle No.</th><th>Gate-In Date</th><th>Gate Pass No.</th><th>Port / Terminal</th></tr></thead>
+      <tbody>${ce.map((c,i)=>`<tr>
+        <td class="mono">${i+1}</td>
+        <td class="mono" style="color:var(--blue)">${c.container_no||'—'}</td>
+        <td class="mono" style="color:var(--amber)">${c.seal_no||'—'}</td>
+        <td class="mono">${c.port_vehicle_no||'—'}</td>
+        <td>${c.gate_in_date||'—'}</td>
+        <td class="mono">${c.gate_pass_no||'—'}</td>
+        <td>${c.port_terminal||'—'}</td>
+      </tr>`).join('')||`<tr><td colspan="7" class="empty">No container entries recorded.</td></tr>`}
+      </tbody>
+    </table>
+    </div>
+    <div class="mac"><button onclick="closeModal()">Close</button><button class="pri" onclick="openCustomsModal('${id}')">Edit</button></div>`;
+  openModal(`<div class="modal lg"><h3>Customs Record: ${r.invoice_no||r.id}</h3>${body}</div>`);
+}
+
+function openCustomsModal(id){
+  S._editIds.customs=id||null;
+  const r=id?S.recs.customs.find(o=>o.id===id):{};
+  if(id){try{_cusContainerEntries=JSON.parse(r.container_port_entries||'[]');}catch(e){_cusContainerEntries=[];}}
+  else if(!_cusContainerEntries.length){
+    // Pre-fill from invoice if available
+    _cusContainerEntries=[];
+  }
+  _reRenderFn=()=>openCustomsModal(id);
+
+  // Invoice picker
+  const invList=S.recs.invoices;
+  const body=`
+    <div class="qwin" style="margin-bottom:12px">
+      <div class="qwin-hdr"><span class="qwin-title">Select Invoice</span></div>
+      <div class="qwin-list">
+        ${invList.length?invList.map(inv=>`
+          <div class="qcard${(id?r.invoice_id:_cusSelInv)===inv.id?' sel':''}" onclick="selCusInvoice('${inv.id}')">
+            <div class="qcard-top">
+              <div><div class="qcard-id">${inv.invoice_no||inv.id}</div><div class="qcard-sub">${inv.buyer||'—'} · ${inv.commodity||'—'}</div></div>
+              <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+                ${bdg(inv.invoice_type||'Ex-Factory')}
+                <span class="badge bb">${inv.containers?JSON.parse(inv.containers||'[]').length:0} containers</span>
+              </div>
+            </div>
+            <div class="qtags"><span class="qtag ok">${inv.contract_no||'—'}</span><span class="qtag hi">${inv.currency||'USD'} ${fmt(inv.invoice_value)}</span><span class="qtag">Cut-off: ${inv.cutoff_date||'—'}</span></div>
+          </div>`).join(''):`<div class="empty">No invoices found. Create one first.</div>`}
+      </div>
+      ${_cusSelInv||(id&&r.invoice_id)?`<div class="sel-pill"><span class="sel-pill-txt">✓ Invoice: ${(S.recs.invoices.find(i=>i.id===(_cusSelInv||(id&&r.invoice_id)))||{}).invoice_no||'selected'}</span><button class="xs dan" onclick="selCusInvoice(null)">Clear</button></div>`:''}
+    </div>
+    <div class="fg">
+      ${msec('Auto-filled from Invoice')}
+      <div class="fgrp"><label>Invoice No. (auto)</label><input id="cus_invno" value="${r.invoice_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract No. (auto)</label><input id="cus_contract" value="${r.contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      ${msec('Customs Process')}
+      <div class="fgrp"><label>Clearing Agent (CHA)</label><input id="cus_agent" value="${r.clearing_agent||''}"></div>
+      <div class="fgrp"><label>First Check Date</label><input type="date" id="cus_checkdate" value="${r.first_check_date||''}"></div>
+      <div class="fgrp"><label>First Check Status</label><select id="cus_checkstatus">${sel(['Pending','Query Raised','Accepted'],r.first_check_status||'Pending')}</select></div>
+      <div class="fgrp"><label>Customs Entry No.</label><input id="cus_entryno" value="${r.customs_entry_no||''}"></div>
+      <div class="fgrp"><label>LEO Copy No.</label><input id="cus_leo" value="${r.leo_no||''}" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>LEO Date</label><input type="date" id="cus_leodate" value="${r.leo_date||''}"></div>
+      ${msec('Phyto & Fumigation')}
+      <div class="fgrp"><label>Phyto Applied?</label><select id="cus_phyto">${sel(['No','Yes','Applied-Pending'],r.phyto_applied||'No')}</select></div>
+      <div class="fgrp"><label>Phyto Cert No.</label><input id="cus_phytono" value="${r.phyto_cert_no||''}"></div>
+      <div class="fgrp"><label>Phyto Date</label><input type="date" id="cus_phytodate" value="${r.phyto_date||''}"></div>
+      <div class="fgrp"><label>Fumigation Done?</label><select id="cus_fum">${sel(['No','Yes','In Progress'],r.fumigation_done||'No')}</select></div>
+      <div class="fgrp"><label>Fumigation Cert No.</label><input id="cus_fumcert" value="${r.fumigation_cert||''}"></div>
+      <div class="fgrp"><label>Fumigation Date</label><input type="date" id="cus_fumdate" value="${r.fumigation_date||''}"></div>
+      <div class="fgrp"><label>Status</label><select id="cus_status">${sel(['Clearance Pending','First Check Done','LEO Received','Phyto Done','Ready for Port','Gate-In Done','Loaded on Vessel'],r.status||'Clearance Pending')}</select></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div>
+        <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em">Container Port Entry Details</div>
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Seal no. and port entry vehicle may differ from loading. One row per container.</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="sm" onclick="prefillCusContainers()">Auto-fill from Invoice</button>
+        <button class="suc sm" onclick="addCusContainer()">＋ Add Row</button>
+      </div>
+    </div>
+    <div id="cus_entries_render">${renderCusEntries()}</div>
+    <div class="fg" style="margin-top:10px">
+      <div class="fgrp full"><label>Remarks</label><textarea id="cus_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit Customs Record':'New Customs Record',body,id?`saveCustoms('${id}')`:'saveCustoms()',true));
+}
+function selCusInvoice(id){
+  _cusSelInv=id;
+  const inv=S.recs.invoices.find(i=>i.id===id);
+  if(inv){af('cus_invno',inv.invoice_no||'');af('cus_contract',inv.contract_no||'');}
+  openCustomsModal(S._editIds.customs);
+}
+function prefillCusContainers(){
+  const invId=_cusSelInv||(S._editIds.customs?S.recs.customs.find(c=>c.id===S._editIds.customs)?.invoice_id:null);
+  const inv=S.recs.invoices.find(i=>i.id===invId);
+  if(!inv)return;
+  let conts=[];try{conts=JSON.parse(inv.containers||'[]');}catch(e){}
+  _cusContainerEntries=conts.map(c=>({container_no:c.container_no||'',seal_no:c.seal_no||'',port_vehicle_no:c.port_vehicle_no||'',gate_in_date:'',gate_pass_no:'',port_terminal:''}));
+  document.getElementById('cus_entries_render').innerHTML=renderCusEntries();
+  toast('Auto-filled from invoice packing list');
+}
+function renderCusEntries(){
+  if(!_cusContainerEntries.length)return`<div style="text-align:center;padding:12px;color:var(--txt3);font-size:12px;border:1px dashed var(--bdr);border-radius:7px">No container entries. Click "Auto-fill from Invoice" or + Add Row.</div>`;
+  const CCOLS='1.1fr 1fr 1fr 100px 1fr 1fr 22px';
+  return`<div style="overflow-x:auto">
+  <div style="display:grid;grid-template-columns:${CCOLS};gap:4px;margin-bottom:3px">
+    ${['Container No.','Seal No.','Port Entry Vehicle No.','Gate-In Date','Gate Pass No.','Port / Terminal',''].map(h=>`<div class="col-hdr" style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;text-align:center">${h}</div>`).join('')}
+  </div>
+  ${_cusContainerEntries.map((c,i)=>`
+    <div style="display:grid;grid-template-columns:${CCOLS};gap:4px;margin-bottom:4px;align-items:center">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);color:var(--blue);width:100%" value="${c.container_no||''}" placeholder="TCKU1234567" oninput="updCusEntry(${i},'container_no',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);color:var(--amber);width:100%" value="${c.seal_no||''}" placeholder="SEAL001" oninput="updCusEntry(${i},'seal_no',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.port_vehicle_no||''}" placeholder="Port vehicle no." oninput="updCusEntry(${i},'port_vehicle_no',this.value)">
+      <input type="date" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;width:100%" value="${c.gate_in_date||''}" oninput="updCusEntry(${i},'gate_in_date',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;font-family:var(--mono);width:100%" value="${c.gate_pass_no||''}" placeholder="Gate pass no." oninput="updCusEntry(${i},'gate_pass_no',this.value)">
+      <input style="background:var(--surf2);border:1px solid var(--bdr);border-radius:5px;padding:5px 7px;font-size:11px;width:100%" value="${c.port_terminal||''}" placeholder="e.g. VCT, Kakinada" oninput="updCusEntry(${i},'port_terminal',this.value)">
+      <button class="ghost xs" onclick="removeCusEntry(${i})">✕</button>
+    </div>`).join('')}
+  </div>`;
+}
+function addCusContainer(){_cusContainerEntries.push({container_no:'',seal_no:'',port_vehicle_no:'',gate_in_date:'',gate_pass_no:'',port_terminal:''});document.getElementById('cus_entries_render').innerHTML=renderCusEntries();}
+function removeCusEntry(i){_cusContainerEntries.splice(i,1);document.getElementById('cus_entries_render').innerHTML=renderCusEntries();}
+function updCusEntry(i,f,v){if(_cusContainerEntries[i])_cusContainerEntries[i][f]=v;}
+async function saveCustoms(id){
+  const invId=_cusSelInv||(id?S.recs.customs.find(c=>c.id===id)?.invoice_id:null);
+  const data={
+    invoice_id:invId||null,invoice_no:fv('cus_invno'),contract_no:fv('cus_contract'),
+    clearing_agent:fv('cus_agent'),first_check_date:fv('cus_checkdate')||null,
+    first_check_status:fv('cus_checkstatus'),customs_entry_no:fv('cus_entryno'),
+    leo_no:fv('cus_leo'),leo_date:fv('cus_leodate')||null,
+    phyto_applied:fv('cus_phyto'),phyto_cert_no:fv('cus_phytono'),phyto_date:fv('cus_phytodate')||null,
+    fumigation_done:fv('cus_fum'),fumigation_cert:fv('cus_fumcert'),fumigation_date:fv('cus_fumdate')||null,
+    container_port_entries:JSON.stringify(_cusContainerEntries),
+    status:fv('cus_status'),remarks:fv('cus_rem')
+  };
+  if(!id)data.id=uid('CUS');
+  _cusSelInv=null;_cusContainerEntries=[];_reRenderFn=null;
+  await saveRec('customs',data,id||null);
+}
+
+// ══════════════════════════════════════════════════════════
+// L. SHIPPING & BL
+// ══════════════════════════════════════════════════════════
+const DEFAULT_DOCS=['Commercial Invoice','Packing List','Bill of Lading','Phytosanitary Certificate','Fumigation Certificate','Certificate of Origin','Insurance Certificate'];
+let _shipSelInv=null,_shipDocs=[],_shipChecklist=[];
+
+function renderShipping(){
+  const rows=S.recs.shipping.filter(o=>!S.search||
+    [o.invoice_no,o.contract_no,o.bl_no,o.vessel].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  return`<div class="sbar">
+    <input placeholder="Search invoice no., BL no., vessel…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderShipping()">
+    <button class="pri" onclick="openShippingModal()">+ New Shipping Record</button>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['ID','Invoice No.','Contract','BL No.','BL Date','BL Received','Vessel','ATD','ETA (POD)','Docs Done','Status','Actions'],
+    r=>{
+      let cl=[];try{cl=JSON.parse(r.doc_checklist||'[]');}catch(e){}
+      const done=cl.filter(d=>d.done).length;
+      return`<tr>
+        <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+        <td><strong class="mono" style="color:var(--blue)">${r.invoice_no||'—'}</strong></td>
+        <td><span class="mono" style="color:var(--green)">${r.contract_no||'—'}</span></td>
+        <td class="mono" style="color:var(--cyan)">${r.bl_no||'—'}</td>
+        <td>${r.bl_date||'—'}</td>
+        <td>${bdg(r.bl_received?'BL Received':'Pending')}</td>
+        <td>${r.vessel||'—'}</td>
+        <td>${r.atd||'—'}</td>
+        <td>${r.eta_pod||'—'}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="background:var(--bdr);border-radius:3px;height:5px;width:60px;overflow:hidden">
+              <div style="height:100%;background:${done===cl.length&&cl.length>0?'var(--green)':'var(--blue)'};width:${cl.length?Math.round(done/cl.length*100):0}%;border-radius:3px"></div>
+            </div>
+            <span class="mono" style="font-size:10px;color:var(--txt3)">${done}/${cl.length}</span>
+          </div>
+        </td>
+        <td>${bdg(r.status||'Awaiting Sailing')}</td>
+        <td><div class="acell">
+          <button class="sm" onclick="openShippingModal('${r.id}')">Edit</button>
+          <button class="sm" onclick="viewShippingDetail('${r.id}')">View</button>
+          <button class="sm dan" onclick="delRec('shipping','${r.id}')">Del</button>
+        </div></td>
+      </tr>`;
+    },
+    'No shipping records yet.'
+  )+`</div>`;
+}
+
+function viewShippingDetail(id){
+  const r=S.recs.shipping.find(o=>o.id===id);if(!r)return;
+  let docs=[];try{docs=JSON.parse(r.documents||'[]');}catch(e){}
+  let cl=[];try{cl=JSON.parse(r.doc_checklist||'[]');}catch(e){}
+  const done=cl.filter(d=>d.done).length;
+  const body=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div class="kpi"><div class="klbl">Invoice No.</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue)">${r.invoice_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">BL No.</div><div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--cyan)">${r.bl_no||'—'}</div></div>
+      <div class="kpi"><div class="klbl">Status</div><div>${bdg(r.status||'Awaiting Sailing')}</div></div>
+      <div class="kpi"><div class="klbl">Vessel / Voyage</div><div style="font-size:13px;font-weight:500">${r.vessel||'—'} / ${r.voyage||'—'}</div></div>
+      <div class="kpi"><div class="klbl">ATD</div><div style="font-family:var(--mono);font-size:13px">${r.atd||'—'}</div></div>
+      <div class="kpi"><div class="klbl">ETA at POD</div><div style="font-family:var(--mono);font-size:13px">${r.eta_pod||'—'}</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Document Checklist (${done}/${cl.length} complete)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+      ${cl.map((d,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;background:${d.done?'rgba(52,211,153,.06)':'var(--surf2)'};border:1px solid ${d.done?'rgba(52,211,153,.2)':'var(--bdr)'};border-radius:6px;padding:7px 10px">
+          <div style="width:16px;height:16px;border-radius:50%;background:${d.done?'var(--green)':'var(--bdr)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#fff">${d.done?'✓':''}</div>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:${d.done?'var(--green)':'var(--txt)'}">${d.name||'—'}</div>
+            ${d.ref?`<div style="font-size:10px;color:var(--txt3);font-family:var(--mono)">${d.ref}</div>`:''}
+          </div>
+        </div>`).join('')||'<div style="color:var(--txt3);font-size:12px">No checklist items.</div>'}
+    </div>
+    ${docs.length?`<div style="font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Additional Documents</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+      ${docs.map(d=>`<span style="background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.2);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--cyan)">${d}</span>`).join('')}
+    </div>`:''}
+    ${r.remarks?`<div style="font-size:11px;color:var(--txt3);font-style:italic">${r.remarks}</div>`:''}
+    <div class="mac"><button onclick="closeModal()">Close</button><button class="pri" onclick="openShippingModal('${id}')">Edit</button></div>`;
+  openModal(`<div class="modal lg"><h3>Shipping Record: ${r.invoice_no||r.id}</h3>${body}</div>`);
+}
+
+function openShippingModal(id){
+  S._editIds.shipping=id||null;
+  const r=id?S.recs.shipping.find(o=>o.id===id):{};
+  if(id){
+    try{_shipDocs=JSON.parse(r.documents||'[]');}catch(e){_shipDocs=[];}
+    try{_shipChecklist=JSON.parse(r.doc_checklist||'[]');}catch(e){_shipChecklist=[];}
+  } else if(!_shipChecklist.length){
+    _shipChecklist=DEFAULT_DOCS.map(n=>({name:n,done:false,ref:''}));
+    _shipDocs=[];
+  }
+  _reRenderFn=()=>openShippingModal(id);
+
+  const invList=S.recs.invoices;
+  const body=`
+    <div class="qwin" style="margin-bottom:12px">
+      <div class="qwin-hdr"><span class="qwin-title">Select Invoice</span></div>
+      <div class="qwin-list">
+        ${invList.length?invList.map(inv=>`
+          <div class="qcard${(id?r.invoice_id:_shipSelInv)===inv.id?' sel':''}" onclick="selShipInvoice('${inv.id}')">
+            <div class="qcard-top">
+              <div><div class="qcard-id">${inv.invoice_no||inv.id}</div><div class="qcard-sub">${inv.buyer||'—'} · ${inv.commodity||'—'}</div></div>
+              <span class="badge bb">${inv.contract_no||'—'}</span>
+            </div>
+          </div>`).join(''):`<div class="empty">No invoices found.</div>`}
+      </div>
+    </div>
+    <div class="fg">
+      ${msec('Auto-filled')}
+      <div class="fgrp"><label>Invoice No. (auto)</label><input id="shp_invno" value="${r.invoice_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract No. (auto)</label><input id="shp_contract" value="${r.contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      ${msec('BL Details')}
+      <div class="fgrp"><label>BL No.</label><input id="shp_blno" value="${r.bl_no||''}" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>BL Date</label><input type="date" id="shp_bldate" value="${r.bl_date||''}"></div>
+      <div class="fgrp"><label>BL Received?</label><select id="shp_blrcvd">${sel(['No','Yes'],r.bl_received?'Yes':'No')}</select></div>
+      <div class="fgrp"><label>BL Received From</label><input id="shp_blsrc" value="${r.bl_received_from||''}" placeholder="e.g. Shipping line / Forwarder"></div>
+      ${msec('Vessel Details')}
+      <div class="fgrp"><label>Vessel Name</label><input id="shp_vessel" value="${r.vessel||''}"></div>
+      <div class="fgrp"><label>Voyage No.</label><input id="shp_voyage" value="${r.voyage||''}"></div>
+      <div class="fgrp"><label>ATD (Actual Departure)</label><input type="date" id="shp_atd" value="${r.atd||''}"></div>
+      <div class="fgrp"><label>ETA at POD</label><input type="date" id="shp_eta" value="${r.eta_pod||''}"></div>
+      <div class="fgrp"><label>Status</label><select id="shp_status">${sel(['Awaiting Sailing','Sailed','BL Received','Docs Prepared','Docs Sent','Completed'],r.status||'Awaiting Sailing')}</select></div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px">Document Checklist</div>
+    <div id="shp_checklist_render">${renderShipChecklist()}</div>
+    <div class="divider"></div>
+    <div style="font-size:11px;font-weight:500;color:var(--txt2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Additional / Miscellaneous Documents</div>
+    <div id="shp_docs_render">${renderShipDocs()}</div>
+    <button class="add-link" onclick="addShipDoc()">＋ Add miscellaneous document</button>
+    <div class="fg" style="margin-top:10px">
+      <div class="fgrp full"><label>Remarks</label><textarea id="shp_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit Shipping Record':'New Shipping & BL Record',body,id?`saveShipping('${id}')`:'saveShipping()',true));
+}
+function selShipInvoice(id){
+  _shipSelInv=id;
+  const inv=S.recs.invoices.find(i=>i.id===id);
+  if(inv){af('shp_invno',inv.invoice_no||'');af('shp_contract',inv.contract_no||'');}
+  openShippingModal(S._editIds.shipping);
+}
+function renderShipChecklist(){
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    ${_shipChecklist.map((d,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;background:${d.done?'rgba(52,211,153,.06)':'var(--surf2)'};border:1px solid ${d.done?'rgba(52,211,153,.2)':'var(--bdr)'};border-radius:6px;padding:8px 10px;cursor:pointer" onclick="toggleChecklistItem(${i})">
+        <div style="width:16px;height:16px;border-radius:4px;background:${d.done?'var(--green)':'var(--bdr2)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:#fff;transition:background .12s">${d.done?'✓':''}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:500;color:${d.done?'var(--green)':'var(--txt)'}">${d.name}</div>
+          <input style="background:transparent;border:none;border-bottom:1px dashed var(--bdr);font-size:10px;color:var(--txt3);font-family:var(--mono);width:100%;outline:none;margin-top:2px" placeholder="Ref no. / notes" value="${d.ref||''}" onclick="event.stopPropagation()" oninput="updChecklistRef(${i},this.value)">
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+function toggleChecklistItem(i){
+  if(_shipChecklist[i])_shipChecklist[i].done=!_shipChecklist[i].done;
+  document.getElementById('shp_checklist_render').innerHTML=renderShipChecklist();
+}
+function updChecklistRef(i,v){if(_shipChecklist[i])_shipChecklist[i].ref=v;}
+function renderShipDocs(){
+  if(!_shipDocs.length)return`<div style="font-size:11px;color:var(--txt3);padding:4px 0">No additional documents added.</div>`;
+  return`<div style="display:flex;flex-wrap:wrap;gap:6px">${_shipDocs.map((d,i)=>`
+    <div style="display:flex;align-items:center;gap:5px;background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.2);border-radius:6px;padding:4px 10px">
+      <span style="font-size:11px;color:var(--cyan)">${d}</span>
+      <button class="ghost xs" onclick="removeShipDoc(${i})" style="color:var(--txt3);padding:0 2px">✕</button>
+    </div>`).join('')}</div>`;
+}
+function addShipDoc(){
+  const name=prompt('Enter document name (e.g. ECTN Certificate, Certificate of Analysis):');
+  if(name&&name.trim()){_shipDocs.push(name.trim());document.getElementById('shp_docs_render').innerHTML=renderShipDocs();}
+}
+function removeShipDoc(i){_shipDocs.splice(i,1);document.getElementById('shp_docs_render').innerHTML=renderShipDocs();}
+async function saveShipping(id){
+  const invId=_shipSelInv||(id?S.recs.shipping.find(s=>s.id===id)?.invoice_id:null);
+  const data={
+    invoice_id:invId||null,invoice_no:fv('shp_invno'),contract_no:fv('shp_contract'),
+    bl_no:fv('shp_blno'),bl_date:fv('shp_bldate')||null,bl_received:fv('shp_blrcvd')==='Yes',
+    bl_received_from:fv('shp_blsrc'),vessel:fv('shp_vessel'),voyage:fv('shp_voyage'),
+    atd:fv('shp_atd')||null,eta_pod:fv('shp_eta')||null,
+    documents:JSON.stringify(_shipDocs),doc_checklist:JSON.stringify(_shipChecklist),
+    status:fv('shp_status'),remarks:fv('shp_rem')
+  };
+  if(!id)data.id=uid('SHP');
+  _shipSelInv=null;_shipDocs=[];_shipChecklist=[];_reRenderFn=null;
+  await saveRec('shipping',data,id||null);
+}
+
+// ══════════════════════════════════════════════════════════
+// M. PAYMENT TRACKING
+// ══════════════════════════════════════════════════════════
+let _paySelInv=null;
+
+function renderPayments(){
+  const rows=S.recs.payments.filter(o=>!S.search||
+    [o.invoice_no,o.contract_no,o.buyer,o.bank_name].join(' ').toLowerCase().includes(S.search.toLowerCase()));
+  const totalDue=rows.reduce((s,r)=>s+(Number(r.invoice_value)||0),0);
+  const totalRcvd=rows.reduce((s,r)=>s+(Number(r.amount_received)||0),0);
+  const totalBal=rows.reduce((s,r)=>s+(Number(r.balance_due)||0),0);
+  const today2=new Date();
+  // Overdue alerts from invoices
+  const overdueInvs=S.recs.invoices.filter(inv=>{
+    if(!inv.cutoff_date||inv.payment_status==='Paid')return false;
+    const pay=rows.find(r=>r.invoice_id===inv.id);
+    return pay&&(pay.status==='Unpaid'||pay.status==='Overdue');
+  });
+
+  return`
+  <div class="kgrid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="klbl">Total Invoiced (USD)</div><div class="kval" style="color:var(--blue);font-size:16px">$${fmt(totalDue)}</div></div>
+    <div class="kpi"><div class="klbl">Received (USD)</div><div class="kval" style="color:var(--green);font-size:16px">$${fmt(totalRcvd)}</div></div>
+    <div class="kpi"><div class="klbl">Balance Due (USD)</div><div class="kval" style="color:${totalBal>0?'var(--red)':'var(--green)'};font-size:16px">$${fmt(totalBal)}</div></div>
+    <div class="kpi"><div class="klbl">Telex Released</div><div class="kval" style="color:var(--purple)">${rows.filter(r=>r.telex_released).length}</div></div>
+  </div>
+  <div class="sbar">
+    <input placeholder="Search invoice no., buyer, contract, bank…" value="${S.search||''}" oninput="S.search=this.value;document.getElementById('ca').innerHTML=renderPayments()">
+    <button class="pri" onclick="openPaymentModal()">+ New Payment Record</button>
+  </div>
+  <div class="card">`+tbl(rows,
+    ['ID','Invoice No.','Contract','Buyer','Invoice Value','Payment Mode','Docs Sent','Docs Via','Received Date','Amount Received','Balance Due','Telex','Status','Actions'],
+    r=>`<tr>
+      <td><span class="mono" style="color:var(--txt3)">${r.id}</span></td>
+      <td><strong class="mono" style="color:var(--blue)">${r.invoice_no||'—'}</strong></td>
+      <td><span class="mono" style="color:var(--green)">${r.contract_no||'—'}</span></td>
+      <td>${r.buyer||'—'}</td>
+      <td class="mono">$${fmt(r.invoice_value)}</td>
+      <td>${bdg(r.payment_mode||'TT Direct')}</td>
+      <td>${r.docs_sent_date||'—'}</td>
+      <td style="font-size:11px">${r.docs_sent_via||'—'}</td>
+      <td>${r.payment_received_date||'—'}</td>
+      <td class="mono dok">$${fmt(r.amount_received)}</td>
+      <td class="mono ${Number(r.balance_due)>0?'dbad':'dok'}">$${fmt(r.balance_due)}</td>
+      <td>${bdg(r.telex_released?'Telex Released':'No')}</td>
+      <td>${bdg(r.status||'Unpaid')}</td>
+      <td><div class="acell"><button class="sm" onclick="openPaymentModal('${r.id}')">Edit</button><button class="sm dan" onclick="delRec('payments','${r.id}')">Del</button></div></td>
+    </tr>`,
+    'No payment records yet.'
+  )+`</div>`;
+}
+
+function openPaymentModal(id){
+  S._editIds.payments=id||null;
+  const r=id?S.recs.payments.find(o=>o.id===id):{};
+  _reRenderFn=()=>openPaymentModal(id);
+  const invList=S.recs.invoices;
+  const body=`
+    <div class="qwin" style="margin-bottom:12px">
+      <div class="qwin-hdr"><span class="qwin-title">Select Invoice</span></div>
+      <div class="qwin-list">
+        ${invList.length?invList.map(inv=>`
+          <div class="qcard${(id?r.invoice_id:_paySelInv)===inv.id?' sel':''}" onclick="selPayInvoice('${inv.id}')">
+            <div class="qcard-top">
+              <div><div class="qcard-id">${inv.invoice_no||inv.id}</div><div class="qcard-sub">${inv.buyer||'—'}</div></div>
+              <div style="display:flex;gap:4px;flex-direction:column;align-items:flex-end">
+                <span class="badge bb">${inv.currency||'USD'} ${fmt(inv.invoice_value)}</span>
+                ${bdg(inv.payment_status||'Unpaid')}
+              </div>
+            </div>
+            <div class="qtags"><span class="qtag ok">${inv.contract_no||'—'}</span><span class="qtag">${inv.payment_terms||'—'}</span></div>
+          </div>`).join(''):`<div class="empty">No invoices found.</div>`}
+      </div>
+    </div>
+    <div class="fg">
+      ${msec('Auto-filled from Invoice')}
+      <div class="fgrp"><label>Invoice No. (auto)</label><input id="pay_invno" value="${r.invoice_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Contract No. (auto)</label><input id="pay_contract" value="${r.contract_no||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      <div class="fgrp"><label>Buyer (auto)</label><input id="pay_buyer" value="${r.buyer||''}" readonly class="af"></div>
+      <div class="fgrp"><label>Invoice Value USD (auto)</label><input id="pay_invval" value="${r.invoice_value||''}" readonly class="af" style="font-family:var(--mono)"></div>
+      ${msec('Payment Flow')}
+      <div class="fgrp full">
+        <label>Payment Mode</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px">
+          ${[
+            {id:'TT Direct',label:'TT Direct',desc:'Payment received then documents sent'},
+            {id:'Bank Negotiation',label:'Bank (LC/Documentary)',desc:'Documents via bank, payment through LC'},
+            {id:'Telex Release',label:'Telex Release',desc:'Documents telexed, payment follows'}
+          ].map(m=>`
+            <div onclick="setPayMode('${m.id}')" id="paymode-${m.id.replace(/ /g,'-')}" style="border:1px solid var(--bdr);border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .12s;${(r.payment_mode||'TT Direct')===m.id?'border-color:var(--blue);background:rgba(79,156,249,.08)':''}">
+              <div style="font-size:12px;font-weight:500;color:${(r.payment_mode||'TT Direct')===m.id?'var(--blue)':'var(--txt)'}">${m.label}</div>
+              <div style="font-size:10px;color:var(--txt3);margin-top:2px">${m.desc}</div>
+            </div>`).join('')}
+        </div>
+        <input type="hidden" id="pay_mode" value="${r.payment_mode||'TT Direct'}">
+      </div>
+      ${msec('Document Dispatch')}
+      <div class="fgrp"><label>Docs Sent Date</label><input type="date" id="pay_docsdate" value="${r.docs_sent_date||''}"></div>
+      <div class="fgrp"><label>Docs Sent Via</label><select id="pay_docsvia">${sel(['—','Bank (Negotiation)','Courier to Buyer','Email (Telex Release)','Swift (Telex)'],r.docs_sent_via||'—')}</select></div>
+      <div class="fgrp"><label>Bank Name (if via bank)</label><input id="pay_bank" value="${r.bank_name||''}" placeholder="e.g. SBI, HDFC, ICICI"></div>
+      <div class="fgrp"><label>Bank Reference No.</label><input id="pay_bankref" value="${r.bank_ref||''}" style="font-family:var(--mono)"></div>
+      ${msec('Payment Receipt')}
+      <div class="fgrp"><label>Payment Received Date</label><input type="date" id="pay_rcvdate" value="${r.payment_received_date||''}" oninput="calcPayBalance()"></div>
+      <div class="fgrp"><label>Amount Received (USD)</label><input type="number" id="pay_rcvamt" value="${r.amount_received||0}" oninput="calcPayBalance()"></div>
+      <div class="fgrp"><label>Balance Due (auto)</label><div id="pay_balance_disp" style="padding:6px 9px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green)">$${fmt(r.balance_due||0)}</div></div>
+      <input type="hidden" id="pay_balance" value="${r.balance_due||''}">
+      ${msec('Telex Release')}
+      <div class="fgrp"><label>Telex Released?</label><select id="pay_telex">${sel(['No','Yes'],r.telex_released?'Yes':'No')}</select></div>
+      <div class="fgrp"><label>Telex Release Date</label><input type="date" id="pay_telexdate" value="${r.telex_date||''}"></div>
+      <div class="fgrp"><label>Payment Status</label><select id="pay_status">${sel(['Unpaid','Partial','Paid','Overdue'],r.status||'Unpaid')}</select></div>
+      <div class="fgrp full"><label>Remarks</label><textarea id="pay_rem">${r.remarks||''}</textarea></div>
+    </div>`;
+  openModal(mw(id?'Edit Payment Record':'New Payment Record',body,id?`savePayment('${id}')`:'savePayment()',true));
+  setTimeout(()=>calcPayBalance(),80);
+}
+function selPayInvoice(id){
+  _paySelInv=id;
+  const inv=S.recs.invoices.find(i=>i.id===id);
+  if(inv){
+    af('pay_invno',inv.invoice_no||'');af('pay_contract',inv.contract_no||'');
+    af('pay_buyer',inv.buyer||'');af('pay_invval',inv.invoice_value||'');
+    setTimeout(()=>calcPayBalance(),50);
+  }
+  openPaymentModal(S._editIds.payments);
+}
+function setPayMode(mode){
+  document.getElementById('pay_mode').value=mode;
+  ['TT Direct','Bank Negotiation','Telex Release'].forEach(m=>{
+    const el=document.getElementById('paymode-'+m.replace(/ /g,'-'));
+    if(el){el.style.borderColor=m===mode?'var(--blue)':'var(--bdr)';el.style.background=m===mode?'rgba(79,156,249,.08)':'';}
+  });
+}
+function calcPayBalance(){
+  const invVal=parseFloat(document.getElementById('pay_invval')?.value)||0;
+  const rcvd=parseFloat(document.getElementById('pay_rcvamt')?.value)||0;
+  const bal=invVal-rcvd;
+  const disp=document.getElementById('pay_balance_disp');
+  const hidden=document.getElementById('pay_balance');
+  if(disp){disp.textContent='$'+fmt(bal);disp.style.color=bal>0?'var(--red)':'var(--green)';}
+  if(hidden)hidden.value=bal;
+}
+async function savePayment(id){
+  calcPayBalance();
+  const invId=_paySelInv||(id?S.recs.payments.find(p=>p.id===id)?.invoice_id:null);
+  const data={
+    invoice_id:invId||null,invoice_no:fv('pay_invno'),contract_no:fv('pay_contract'),
+    buyer:fv('pay_buyer'),invoice_value:fv('pay_invval')||null,
+    payment_mode:fv('pay_mode'),docs_sent_date:fv('pay_docsdate')||null,
+    docs_sent_via:fv('pay_docsvia'),bank_name:fv('pay_bank'),bank_ref:fv('pay_bankref'),
+    payment_received_date:fv('pay_rcvdate')||null,amount_received:fv('pay_rcvamt')||0,
+    balance_due:fv('pay_balance')||null,telex_released:fv('pay_telex')==='Yes',
+    telex_date:fv('pay_telexdate')||null,status:fv('pay_status'),remarks:fv('pay_rem')
+  };
+  if(!id)data.id=uid('PAY');
+  _paySelInv=null;_reRenderFn=null;
+  await saveRec('payments',data,id||null);
+}
+
+
 // ── Page registry ─────────────────────────────────────────
 const pages={
   dashboard:{title:'Dashboard',render:renderDash},
@@ -2047,9 +2604,9 @@ const pages={
   cfs_trucks:{title:'CFS Truck Dispatch & Receipt',render:renderCfsTrucks},
   cfs_stuffing:{title:'CFS Stuffing & Container Allocation',render:renderCfsStuffing},
   invoices:{title:'Invoice & Packing List',render:renderInvoices},
-  customs:{title:'Customs & Documentation',render:()=>placeholderPage('Customs & Documentation','🛃','First check copy, LEO, Phyto, seal numbers, port entry vehicle numbers per container.')},
-  shipping:{title:'Shipping & BL',render:()=>placeholderPage('Shipping & BL','🚢','BL copy receipt. Miscellaneous documents. Full document checklist per shipment.')},
-  payments:{title:'Payment Tracking',render:()=>placeholderPage('Payment Tracking','💰','Bank negotiation, telex release, direct payment. Track per invoice.')},
+  customs:{title:'Customs & Documentation',render:renderCustoms},
+  shipping:{title:'Shipping & BL',render:renderShipping},
+  payments:{title:'Payment Tracking',render:renderPayments},
   rates:{title:'Master Rates',render:renderRates},
   product_specs:{title:'Product Specs',render:renderProductSpecs},
 };
