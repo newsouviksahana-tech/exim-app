@@ -2688,22 +2688,47 @@ initApp();
 // AUTH — LOGIN / LOGOUT / USER MANAGEMENT
 // ══════════════════════════════════════════════════════════
 async function initApp(){
-  const{data:{session}}=await db.auth.getSession();
-  if(session){
+  // Clear any stale recovery tokens from URL
+  const hash=window.location.hash;
+  const params=new URLSearchParams(window.location.search);
+  const isRecovery=hash.includes('type=recovery')||params.get('type')==='recovery';
+
+  const{data:{session},error}=await db.auth.getSession();
+
+  if(session&&!isRecovery){
     currentUser=session.user;
     await loadProfile();
+    // Check if profile is active
+    if(currentProfile&&currentProfile.active===false){
+      await db.auth.signOut({scope:'local'});
+      currentUser=null;currentProfile=null;
+      showLogin('Your account has been deactivated. Contact your administrator.');
+      return;
+    }
     renderAll();loadAll();
   } else {
-    showLogin();
+    // Clear any lingering session for recovery flow
+    if(isRecovery){
+      // Stay on app but show change password screen
+      showChangePassword();
+    } else {
+      showLogin();
+    }
   }
+
   db.auth.onAuthStateChange(async(event,session)=>{
     if(event==='SIGNED_IN'&&session){
       currentUser=session.user;
       await loadProfile();
       renderAll();loadAll();
-    } else if(event==='SIGNED_OUT'){
+    } else if(event==='SIGNED_OUT'||event==='USER_DELETED'){
       currentUser=null;currentProfile=null;
+      Object.keys(localStorage).forEach(k=>{
+        if(k.includes('supabase')||k.includes('sb-'))localStorage.removeItem(k);
+      });
       showLogin();
+    } else if(event==='PASSWORD_RECOVERY'){
+      showChangePassword();
     }
   });
 }
@@ -2715,7 +2740,7 @@ async function loadProfile(){
   }catch(e){currentProfile=null;}
 }
 
-function showLogin(){
+function showLogin(msg){
   document.getElementById('root').innerHTML=`
   <div class="login-wrap">
     <div class="login-box">
@@ -2723,13 +2748,85 @@ function showLogin(){
         <h1>ExIm Manager</h1>
         <p>Export-Import Management System</p>
       </div>
+      ${msg?`<div class="login-err" style="display:block">${msg}</div>`:''}
       <div class="login-err" id="login-err"></div>
       <div class="login-field"><label>Email Address</label><input type="email" id="login-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div class="login-field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="login-btn" onclick="doLogin()">Sign In</button>
-      <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--txt3)">Contact your administrator to reset your password</div>
+      <div style="text-align:center;margin-top:14px">
+        <span style="font-size:11px;color:var(--txt3)">Forgot password? </span>
+        <span style="font-size:11px;color:var(--blue);cursor:pointer" onclick="showForgotPassword()">Reset via email</span>
+      </div>
     </div>
   </div>`;
+}
+
+function showForgotPassword(){
+  document.getElementById('root').innerHTML=`
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <h1>ExIm Manager</h1>
+        <p>Reset your password</p>
+      </div>
+      <div class="login-err" id="fp-err"></div>
+      <div class="login-err" id="fp-ok" style="background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25);color:var(--green)"></div>
+      <div class="login-field"><label>Your Email Address</label><input type="email" id="fp-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doForgotPassword()"></div>
+      <button class="login-btn" onclick="doForgotPassword()">Send Reset Link</button>
+      <div style="text-align:center;margin-top:14px">
+        <span style="font-size:11px;color:var(--blue);cursor:pointer" onclick="showLogin()">← Back to login</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function doForgotPassword(){
+  const email=document.getElementById('fp-email')?.value?.trim();
+  const errEl=document.getElementById('fp-err');
+  const okEl=document.getElementById('fp-ok');
+  if(!email){if(errEl){errEl.textContent='Please enter your email.';errEl.style.display='block';}return;}
+  const{error}=await db.auth.resetPasswordForEmail(email,{
+    redirectTo:window.location.origin+window.location.pathname
+  });
+  if(error){if(errEl){errEl.textContent=error.message;errEl.style.display='block';}}
+  else{if(okEl){okEl.textContent='Reset link sent! Check your email inbox.';okEl.style.display='block';}if(errEl)errEl.style.display='none';}
+}
+
+function showChangePassword(){
+  document.getElementById('root').innerHTML=`
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <h1>ExIm Manager</h1>
+        <p>Set your new password</p>
+      </div>
+      <div class="login-err" id="cp-err"></div>
+      <div class="login-err" id="cp-ok" style="background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.25);color:var(--green)"></div>
+      <div class="login-field"><label>New Password</label><input type="password" id="cp-pass" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doChangePassword()"></div>
+      <div class="login-field"><label>Confirm New Password</label><input type="password" id="cp-pass2" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doChangePassword()"></div>
+      <button class="login-btn" onclick="doChangePassword()">Save New Password</button>
+    </div>
+  </div>`;
+}
+
+async function doChangePassword(){
+  const p1=document.getElementById('cp-pass')?.value;
+  const p2=document.getElementById('cp-pass2')?.value;
+  const errEl=document.getElementById('cp-err');
+  const okEl=document.getElementById('cp-ok');
+  if(!p1||p1.length<6){if(errEl){errEl.textContent='Password must be at least 6 characters.';errEl.style.display='block';}return;}
+  if(p1!==p2){if(errEl){errEl.textContent='Passwords do not match.';errEl.style.display='block';}return;}
+  const{error}=await db.auth.updateUser({password:p1});
+  if(error){if(errEl){errEl.textContent=error.message;errEl.style.display='block';}}
+  else{
+    if(okEl){okEl.textContent='Password changed successfully! Signing you in…';okEl.style.display='block';}
+    if(errEl)errEl.style.display='none';
+    setTimeout(async()=>{
+      const{data:{session}}=await db.auth.getSession();
+      if(session){currentUser=session.user;await loadProfile();renderAll();loadAll();}
+      else showLogin('Password changed. Please log in with your new password.');
+    },1500);
+  }
 }
 
 async function doLogin(){
@@ -2743,7 +2840,22 @@ async function doLogin(){
 
 async function doLogout(){
   if(!confirm('Sign out?'))return;
-  await db.auth.signOut();
+  try{
+    await db.auth.signOut({scope:'local'});
+  }catch(e){console.warn('signOut error:',e);}
+  // Force clear everything
+  currentUser=null;currentProfile=null;
+  // Clear all supabase storage keys
+  Object.keys(localStorage).forEach(k=>{
+    if(k.includes('supabase')||k.includes('sb-'))localStorage.removeItem(k);
+  });
+  Object.keys(sessionStorage).forEach(k=>{
+    if(k.includes('supabase')||k.includes('sb-'))sessionStorage.removeItem(k);
+  });
+  // Force show login
+  document.getElementById('root').innerHTML='';
+  document.getElementById('mroot').innerHTML='';
+  showLogin();
 }
 
 function renderUserChip(){
